@@ -182,6 +182,9 @@ if submitted:
         low_prob = sum(posteriors.get(k, 0.0) for k in ["1", "2"]) * 100.0
         high_prob = sum(posteriors.get(k, 0.0) for k in ["4", "5", "6"]) * 100.0
         st.metric(label="低(1,2) / 高(4,5,6)", value=f"{low_prob:.2f}% / {high_prob:.2f}%")
+        grp124 = (posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)) * 100.0
+        grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
+        st.metric(label="(1,2,4) / (5,6)", value=f"{grp124:.2f}% / {grp56:.2f}%")
 
     # 表（モバイルで見やすい列順）
     rows = []
@@ -214,11 +217,6 @@ if submitted:
         .properties(height=260)
     )
     st.altair_chart(chart, use_container_width=True)
-
-    # 追加の比較（補足・小さめ表示）
-    grp124 = (posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)) * 100.0
-    grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
-    st.caption(f"補足: 1,2,4 合算: {grp124:.2f}% ／ 5,6 合算: {grp56:.2f}%")
 
 else:
     st.info("フォームに入力して『計算する』を押してください。事前確率はデフォルトで均等配分です。")
