@@ -53,19 +53,18 @@ def compute_posteriors(num_spins: int, num_hits: int, priors: Dict[str, float]) 
     return priors
 
 
-# ページ設定（モバイル最適化）
-st.set_page_config(page_title="モンキーターンV判別ツール", page_icon="🎰", layout="centered", initial_sidebar_state="collapsed")
+# ページ設定（wide + モバイル最適化）
+st.set_page_config(page_title="設定推定ツール", page_icon="🎰", layout="wide", initial_sidebar_state="collapsed")
 
 # 余白やフォントをモバイル向けに調整（上部切れ対策: safe-area 分も確保）
 st.markdown(
     """
     <style>
-      .block-container { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-bottom: 2rem; max-width: 860px; }
+      .block-container { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-bottom: 2rem; max-width: 980px; }
       label, .stMarkdown p { font-size: 0.95rem; }
       .stNumberInput input { font-size: 1rem; }
       /* マイクロボタン行: 2列で横並び、小さめボタン */
       .micro-row { margin-top: 0.25rem; }
-      /* iPhone Safari でも二列維持: この行に限り横並び・nowrap を強制 */
       .micro-row [data-testid="stHorizontalBlock"] { display: flex !important; flex-wrap: nowrap !important; }
       .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
       .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
@@ -75,6 +74,27 @@ st.markdown(
         label, .stMarkdown p { font-size: 0.9rem; }
         .micro-row .stButton > button { min-width: 56px; }
       }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# iPhone Safari で列の横並びを維持するCSS（提供いただいた内容）
+st.markdown(
+    """
+    <style>
+    @media (max-width: 640px) {
+      div[data-testid="column"] {
+        width: calc(50% - 0.5rem) !important;
+        flex: 1 1 calc(50% - 0.5rem) !important;
+      }
+      div[data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+      }
+      div[data-testid="stNumberInput"] {
+        min-width: 0 !important;
+      }
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -91,35 +111,35 @@ if "k" not in st.session_state:
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
 
-    # 総回転数 N
-    n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
-    # N用のマイクロボタン（2列で横並び固定）
-    st.markdown('<div class="micro-row">', unsafe_allow_html=True)
-    n_col1, n_col2 = st.columns(2)
-    with n_col1:
-        if st.form_submit_button("N -50", key="n_minus"):
-            st.session_state.n = max(0, int(n) - 50)
-            st.rerun()
-    with n_col2:
-        if st.form_submit_button("N +50", key="n_plus"):
-            st.session_state.n = int(n) + 50
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # N と k を横並び（2カラム・小さめギャップ）
+    colN, colK = st.columns(2, gap="small")
+    with colN:
+        n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
+        st.markdown('<div class="micro-row">', unsafe_allow_html=True)
+        n_col1, n_col2 = st.columns(2)
+        with n_col1:
+            if st.form_submit_button("N -50", key="n_minus"):
+                st.session_state.n = max(0, int(n) - 50)
+                st.rerun()
+        with n_col2:
+            if st.form_submit_button("N +50", key="n_plus"):
+                st.session_state.n = int(n) + 50
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # 小役回数 k
-    k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
-    # k用のマイクロボタン（2列で横並び固定）
-    st.markdown('<div class="micro-row">', unsafe_allow_html=True)
-    k_col1, k_col2 = st.columns(2)
-    with k_col1:
-        if st.form_submit_button("k -10", key="k_minus"):
-            st.session_state.k = max(0, int(k) - 10)
-            st.rerun()
-    with k_col2:
-        if st.form_submit_button("k +10", key="k_plus"):
-            st.session_state.k = int(k) + 10
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    with colK:
+        k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
+        st.markdown('<div class="micro-row">', unsafe_allow_html=True)
+        k_col1, k_col2 = st.columns(2)
+        with k_col1:
+            if st.form_submit_button("k -10", key="k_minus"):
+                st.session_state.k = max(0, int(k) - 10)
+                st.rerun()
+        with k_col2:
+            if st.form_submit_button("k +10", key="k_plus"):
+                st.session_state.k = int(k) + 10
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # 事前確率の設定モード
     st.markdown("事前確率（合計は自動正規化）")
