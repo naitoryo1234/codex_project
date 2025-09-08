@@ -61,6 +61,8 @@ st.markdown(
     """
     <style>
       .block-container { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-bottom: 2rem; max-width: 980px; }
+      /* タイトル少し小さく */
+      h1 { font-size: 1.6rem !important; }
       label, .stMarkdown p { font-size: 0.95rem; }
       .stNumberInput input { font-size: 1rem; }
       /* マイクロボタン行: 2列で横並び、小さめボタン */
@@ -183,17 +185,22 @@ if submitted:
         grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
         st.metric(label="(1,2,4) / (5,6)", value=f"{grp124:.2f}% / {grp56:.2f}%")
 
-    # 棒グラフ（先に表示）
+    # 棒グラフ（トップ設定を赤でハイライト）
     chart_data = pd.DataFrame({
         "設定": SETTING_KEYS,
         "事後(%)": [posteriors[k] * 100.0 for k in SETTING_KEYS],
     })
     chart = (
         alt.Chart(chart_data)
-        .mark_bar(size=36, cornerRadiusTopLeft=3, cornerRadiusTopRight=3, color="#2F80ED")
+        .mark_bar(size=36, cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
         .encode(
             x=alt.X("設定:N", sort=SETTING_KEYS, axis=alt.Axis(title=None)),
             y=alt.Y("事後(%):Q", axis=alt.Axis(title=None)),
+            color=alt.condition(
+                alt.datum.設定 == top_key,
+                alt.value("#E74C3C"),  # 赤系（トップ）
+                alt.value("#2F80ED"),  # 既定の青
+            ),
             tooltip=[alt.Tooltip("設定:N"), alt.Tooltip("事後(%):Q", format=".2f")],
         )
         .properties(height=260)
