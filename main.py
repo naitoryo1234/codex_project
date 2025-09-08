@@ -69,10 +69,13 @@ st.markdown(
       .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
       .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
       .micro-row .stButton > button { padding: 0.14rem 0.46rem; font-size: 0.82rem; min-width: 60px; }
+      /* metricの値を省略せず折り返し可にする */
+      div[data-testid="stMetricValue"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
         label, .stMarkdown p { font-size: 0.9rem; }
         .micro-row .stButton > button { min-width: 56px; }
+        div[data-testid="stMetricValue"] { font-size: 1rem !important; }
       }
     </style>
     """,
