@@ -53,74 +53,135 @@ def compute_posteriors(num_spins: int, num_hits: int, priors: Dict[str, float]) 
     return priors
 
 
-st.set_page_config(page_title="設定推定 (ベイズ)", layout="centered")
+# ページ設定（モバイル最適化）
+st.set_page_config(page_title="設定推定 (ベイズ)", page_icon="🎰", layout="centered", initial_sidebar_state="collapsed")
+
+# 余白やフォントをモバイル向けに調整
+st.markdown(
+    """
+    <style>
+      /* 全体の左右余白をやや詰める */
+      .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 860px; }
+      /* インプットやラベルの行間を詰める */
+      label, .stMarkdown p { font-size: 0.95rem; }
+      .stNumberInput input { font-size: 1rem; }
+      /* 小さめ画面での余白調整 */
+      @media (max-width: 420px) {
+        .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
+        label, .stMarkdown p { font-size: 0.9rem; }
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.title("設定推定ツール (ベイズ更新)")
 
-with st.form("inputs"):
+# セッション状態（クイック操作用）
+if "n" not in st.session_state:
+    st.session_state.n = 1000
+if "k" not in st.session_state:
+    st.session_state.k = 20
+
+with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
-    col1, col2 = st.columns(2)
-    with col1:
-        n = st.number_input("総回転数 N", min_value=0, value=1000, step=10)
-    with col2:
-        k = st.number_input("小役回数 k", min_value=0, value=20, step=1)
 
-    st.markdown("事前確率（均等がデフォルト。合計は自動正規化）")
-    prior_cols = st.columns(len(SETTING_KEYS))
-    prior_inputs: Dict[str, float] = {}
+    # 数値入力（モバイルで縦積み）
+    n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
+    k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
+
+    # クイック操作ボタン（横に小さく並べる）
+    q1, q2, q3, q4 = st.columns([1, 1, 1, 1])
+    with q1:
+        if st.form_submit_button("N -10"):
+            st.session_state.n = max(0, int(n) - 10)
+            st.rerun()
+    with q2:
+        if st.form_submit_button("N +10"):
+            st.session_state.n = int(n) + 10
+            st.rerun()
+    with q3:
+        if st.form_submit_button("k -1"):
+            st.session_state.k = max(0, int(k) - 1)
+            st.rerun()
+    with q4:
+        if st.form_submit_button("k +1"):
+            st.session_state.k = int(k) + 1
+            st.rerun()
+
+    # 事前確率の設定モード
+    st.markdown("事前確率（合計は自動正規化）")
+    prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
+
     default_uniform = 100.0 / len(SETTING_KEYS)
-    for idx, key in enumerate(SETTING_KEYS):
-        with prior_cols[idx]:
-            prior_inputs[key] = st.number_input(
-                f"設定 {key}", min_value=0.0, value=float(f"{default_uniform:.1f}"), step=0.1, key=f"prior_{key}"
-            )
+    prior_inputs: Dict[str, float] = {k: default_uniform for k in SETTING_KEYS}
 
-    submitted = st.form_submit_button("計算する")
+    if prior_mode == "カスタム":
+        with st.expander("事前確率を細かく指定", expanded=True):
+            cols = st.columns(len(SETTING_KEYS))
+            for idx, key in enumerate(SETTING_KEYS):
+                with cols[idx]:
+                    prior_inputs[key] = st.number_input(
+                        f"設定 {key}", min_value=0.0, value=float(f"{default_uniform:.1f}"), step=0.1, key=f"prior_{key}"
+                    )
+
+    submitted = st.form_submit_button("計算する", use_container_width=True)
 
 if submitted:
-    priors = prior_inputs  # 値は正規化前（比率や%でOK）
+    st.session_state.n = int(n)
+    st.session_state.k = int(k)
 
-    if n < 0 or k < 0 or k > n:
+    if st.session_state.k > st.session_state.n:
         st.error("入力エラー: 0 <= 小役回数 <= 回転数 を満たしてください。")
         st.stop()
 
-    posteriors = compute_posteriors(int(n), int(k), priors)
+    priors = prior_inputs  # 比率/百分率でOK（内部で正規化）
+    posteriors = compute_posteriors(int(st.session_state.n), int(st.session_state.k), priors)
+    priors_norm = normalize(priors)
 
-    st.subheader("結果")
+    # トップ設定の強調表示
+    top_key = max(posteriors, key=posteriors.get)
+    top_prob = posteriors[top_key] * 100.0
 
-    df_rows = []
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric(label="最有力の設定", value=f"設定 {top_key}", delta=f"{top_prob:.2f}%")
+    with c2:
+        low_prob = sum(posteriors.get(k, 0.0) for k in ["1", "2"]) * 100.0
+        high_prob = sum(posteriors.get(k, 0.0) for k in ["4", "5", "6"]) * 100.0
+        st.metric(label="低(1,2) / 高(4,5,6)", value=f"{low_prob:.2f}% / {high_prob:.2f}%")
+
+    # 表示テーブル（モバイルで見やすい列順）
+    rows = []
     for key in SETTING_KEYS:
         p = SETTINGS[key]
-        df_rows.append(
+        rows.append(
             {
                 "設定": key,
-                "理論値(1/x)": round(1.0 / p, 2),
-                "事前(%)": round(normalize(priors)[key] * 100.0, 2),
+                "理論(1/x)": round(1.0 / p, 2),
+                "事前(%)": round(priors_norm[key] * 100.0, 2),
                 "事後(%)": round(posteriors[key] * 100.0, 2),
             }
         )
-    df = pd.DataFrame(df_rows)
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-    st.dataframe(df, use_container_width=True)
-
+    # 棒グラフ（ツールチップ付き、モバイルでタップしやすいサイズ）
     chart_data = pd.DataFrame({
         "設定": SETTING_KEYS,
         "事後(%)": [posteriors[k] * 100.0 for k in SETTING_KEYS],
     })
     chart = (
         alt.Chart(chart_data)
-        .mark_bar(color="#007bff")
-        .encode(x=alt.X("設定:N", sort=SETTING_KEYS), y=alt.Y("事後(%):Q"))
-        .properties(height=300)
+        .mark_bar(size=36, cornerRadiusTopLeft=3, cornerRadiusTopRight=3, color="#2F80ED")
+        .encode(
+            x=alt.X("設定:N", sort=SETTING_KEYS, axis=alt.Axis(title=None)),
+            y=alt.Y("事後(%):Q", axis=alt.Axis(title=None)),
+            tooltip=[alt.Tooltip("設定:N"), alt.Tooltip("事後(%):Q", format=".2f")],
+        )
+        .properties(height=260)
     )
     st.altair_chart(chart, use_container_width=True)
 
-    # 低設定/高設定のグループ表示（参考）
-    low_keys = ["1", "2"]
-    high_keys = ["4", "5", "6"]
-    low_prob = sum(posteriors.get(k, 0.0) for k in low_keys) * 100.0
-    high_prob = sum(posteriors.get(k, 0.0) for k in high_keys) * 100.0
-    st.markdown(
-        f"低設定 (1,2): **{low_prob:.2f}%**　｜　高設定 (4,5,6): **{high_prob:.2f}%**"
-    )
 else:
     st.info("フォームに入力して『計算する』を押してください。事前確率はデフォルトで均等配分です。")
