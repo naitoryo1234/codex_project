@@ -63,13 +63,13 @@ st.markdown(
       .block-container { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-bottom: 2rem; max-width: 860px; }
       label, .stMarkdown p { font-size: 0.95rem; }
       .stNumberInput input { font-size: 1rem; }
-      /* クイックボタン行: 常に横並びで小さめボタン */
-      .quick-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; }
-      .quick-row .stButton > button { padding: 0.25rem 0.6rem; font-size: 0.9rem; min-width: 78px; }
+      /* マイクロボタン行: 2列で横並び、小さめボタン */
+      .micro-row { margin-top: 0.25rem; }
+      .micro-row .stButton > button { padding: 0.18rem 0.5rem; font-size: 0.85rem; min-width: 88px; }
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
         label, .stMarkdown p { font-size: 0.9rem; }
-        .quick-row { overflow-x: auto; }
+        .micro-row .stButton > button { min-width: 80px; }
       }
     </style>
     """,
@@ -78,41 +78,44 @@ st.markdown(
 
 st.title("モンキーターンV判別ツール")
 
-# セッション状態（クイック操作用）
+# セッション状態
 if "n" not in st.session_state:
     st.session_state.n = 1000
 if "k" not in st.session_state:
     st.session_state.k = 20
 
-# クイック操作（フォーム外、横並び・小型ボタン）
-quick = st.container()
-with quick:
-    st.markdown('<div class="quick-row">', unsafe_allow_html=True)
-    qc1, qc2, qc3, qc4 = st.columns([1, 1, 1, 1])
-    with qc1:
-        if st.button("N -50", key="quick_n_minus"):
-            st.session_state.n = max(0, int(st.session_state.n) - 50)
-            st.rerun()
-    with qc2:
-        if st.button("N +50", key="quick_n_plus"):
-            st.session_state.n = int(st.session_state.n) + 50
-            st.rerun()
-    with qc3:
-        if st.button("k -10", key="quick_k_minus"):
-            st.session_state.k = max(0, int(st.session_state.k) - 10)
-            st.rerun()
-    with qc4:
-        if st.button("k +10", key="quick_k_plus"):
-            st.session_state.k = int(st.session_state.k) + 10
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
 
-    # 数値入力（セッション値を反映）
+    # 総回転数 N
     n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
+    # N用のマイクロボタン（2列で横並び）
+    st.markdown('<div class="micro-row">', unsafe_allow_html=True)
+    n_col1, n_col2 = st.columns(2)
+    with n_col1:
+        if st.form_submit_button("N -50", key="n_minus"):
+            st.session_state.n = max(0, int(n) - 50)
+            st.rerun()
+    with n_col2:
+        if st.form_submit_button("N +50", key="n_plus"):
+            st.session_state.n = int(n) + 50
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # 小役回数 k
     k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
+    # k用のマイクロボタン（2列で横並び）
+    st.markdown('<div class="micro-row">', unsafe_allow_html=True)
+    k_col1, k_col2 = st.columns(2)
+    with k_col1:
+        if st.form_submit_button("k -10", key="k_minus"):
+            st.session_state.k = max(0, int(k) - 10)
+            st.rerun()
+    with k_col2:
+        if st.form_submit_button("k +10", key="k_plus"):
+            st.session_state.k = int(k) + 10
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 事前確率の設定モード
     st.markdown("事前確率（合計は自動正規化）")
