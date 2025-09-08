@@ -90,23 +90,23 @@ with st.form("inputs", clear_on_submit=False):
     n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
     k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
 
-    # クイック操作ボタン（横に小さく並べる）
-    q1, q2, q3, q4 = st.columns([1, 1, 1, 1])
-    with q1:
-        if st.form_submit_button("N -10"):
-            st.session_state.n = max(0, int(n) - 10)
+    # クイック操作ボタン（横並び）
+    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
+    with c1:
+        if st.form_submit_button("N -50"):
+            st.session_state.n = max(0, int(n) - 50)
             st.rerun()
-    with q2:
-        if st.form_submit_button("N +10"):
-            st.session_state.n = int(n) + 10
+    with c2:
+        if st.form_submit_button("N +50"):
+            st.session_state.n = int(n) + 50
             st.rerun()
-    with q3:
-        if st.form_submit_button("k -1"):
-            st.session_state.k = max(0, int(k) - 1)
+    with c3:
+        if st.form_submit_button("k -10"):
+            st.session_state.k = max(0, int(k) - 10)
             st.rerun()
-    with q4:
-        if st.form_submit_button("k +1"):
-            st.session_state.k = int(k) + 1
+    with c4:
+        if st.form_submit_button("k +10"):
+            st.session_state.k = int(k) + 10
             st.rerun()
 
     # 事前確率の設定モード
