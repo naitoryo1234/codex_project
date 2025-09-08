@@ -65,11 +65,15 @@ st.markdown(
       .stNumberInput input { font-size: 1rem; }
       /* マイクロボタン行: 2列で横並び、小さめボタン */
       .micro-row { margin-top: 0.25rem; }
-      .micro-row .stButton > button { padding: 0.18rem 0.5rem; font-size: 0.85rem; min-width: 88px; }
+      /* iPhone Safari でも二列維持: この行に限り横並び・nowrap を強制 */
+      .micro-row [data-testid="stHorizontalBlock"] { display: flex !important; flex-wrap: nowrap !important; }
+      .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
+      .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
+      .micro-row .stButton > button { padding: 0.14rem 0.46rem; font-size: 0.82rem; min-width: 60px; }
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
         label, .stMarkdown p { font-size: 0.9rem; }
-        .micro-row .stButton > button { min-width: 80px; }
+        .micro-row .stButton > button { min-width: 56px; }
       }
     </style>
     """,
@@ -89,7 +93,7 @@ with st.form("inputs", clear_on_submit=False):
 
     # 総回転数 N
     n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
-    # N用のマイクロボタン（2列で横並び）
+    # N用のマイクロボタン（2列で横並び固定）
     st.markdown('<div class="micro-row">', unsafe_allow_html=True)
     n_col1, n_col2 = st.columns(2)
     with n_col1:
@@ -104,7 +108,7 @@ with st.form("inputs", clear_on_submit=False):
 
     # 小役回数 k
     k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
-    # k用のマイクロボタン（2列で横並び）
+    # k用のマイクロボタン（2列で横並び固定）
     st.markdown('<div class="micro-row">', unsafe_allow_html=True)
     k_col1, k_col2 = st.columns(2)
     with k_col1:
@@ -190,6 +194,11 @@ if submitted:
         .properties(height=260)
     )
     st.altair_chart(chart, use_container_width=True)
+
+    # 追加の比較（補足・小さめ表示）
+    grp124 = (posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)) * 100.0
+    grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
+    st.caption(f"補足: 1,2,4 合算: {grp124:.2f}% ／ 5,6 合算: {grp56:.2f}%")
 
 else:
     st.info("フォームに入力して『計算する』を押してください。事前確率はデフォルトで均等配分です。")
