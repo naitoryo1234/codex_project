@@ -54,28 +54,29 @@ def compute_posteriors(num_spins: int, num_hits: int, priors: Dict[str, float]) 
 
 
 # ページ設定（モバイル最適化）
-st.set_page_config(page_title="設定推定 (ベイズ)", page_icon="🎰", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="モンキーターンV判別ツール", page_icon="🎰", layout="centered", initial_sidebar_state="collapsed")
 
-# 余白やフォントをモバイル向けに調整
+# 余白やフォントをモバイル向けに調整（上部切れ対策: safe-area 分も確保）
 st.markdown(
     """
     <style>
-      /* 全体の左右余白をやや詰める */
-      .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 860px; }
-      /* インプットやラベルの行間を詰める */
+      .block-container { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-bottom: 2rem; max-width: 860px; }
       label, .stMarkdown p { font-size: 0.95rem; }
       .stNumberInput input { font-size: 1rem; }
-      /* 小さめ画面での余白調整 */
+      /* クイックボタン行: 常に横並びで小さめボタン */
+      .quick-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; }
+      .quick-row .stButton > button { padding: 0.25rem 0.6rem; font-size: 0.9rem; min-width: 78px; }
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
         label, .stMarkdown p { font-size: 0.9rem; }
+        .quick-row { overflow-x: auto; }
       }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.title("設定推定ツール (ベイズ更新)")
+st.title("モンキーターンV判別ツール")
 
 # セッション状態（クイック操作用）
 if "n" not in st.session_state:
@@ -83,31 +84,35 @@ if "n" not in st.session_state:
 if "k" not in st.session_state:
     st.session_state.k = 20
 
+# クイック操作（フォーム外、横並び・小型ボタン）
+quick = st.container()
+with quick:
+    st.markdown('<div class="quick-row">', unsafe_allow_html=True)
+    qc1, qc2, qc3, qc4 = st.columns([1, 1, 1, 1])
+    with qc1:
+        if st.button("N -50", key="quick_n_minus"):
+            st.session_state.n = max(0, int(st.session_state.n) - 50)
+            st.rerun()
+    with qc2:
+        if st.button("N +50", key="quick_n_plus"):
+            st.session_state.n = int(st.session_state.n) + 50
+            st.rerun()
+    with qc3:
+        if st.button("k -10", key="quick_k_minus"):
+            st.session_state.k = max(0, int(st.session_state.k) - 10)
+            st.rerun()
+    with qc4:
+        if st.button("k +10", key="quick_k_plus"):
+            st.session_state.k = int(st.session_state.k) + 10
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
 
-    # 数値入力（モバイルで縦積み）
+    # 数値入力（セッション値を反映）
     n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
     k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
-
-    # クイック操作ボタン（横並び）
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
-    with c1:
-        if st.form_submit_button("N -50"):
-            st.session_state.n = max(0, int(n) - 50)
-            st.rerun()
-    with c2:
-        if st.form_submit_button("N +50"):
-            st.session_state.n = int(n) + 50
-            st.rerun()
-    with c3:
-        if st.form_submit_button("k -10"):
-            st.session_state.k = max(0, int(k) - 10)
-            st.rerun()
-    with c4:
-        if st.form_submit_button("k +10"):
-            st.session_state.k = int(k) + 10
-            st.rerun()
 
     # 事前確率の設定モード
     st.markdown("事前確率（合計は自動正規化）")
@@ -151,7 +156,7 @@ if submitted:
         high_prob = sum(posteriors.get(k, 0.0) for k in ["4", "5", "6"]) * 100.0
         st.metric(label="低(1,2) / 高(4,5,6)", value=f"{low_prob:.2f}% / {high_prob:.2f}%")
 
-    # 表示テーブル（モバイルで見やすい列順）
+    # 表（モバイルで見やすい列順）
     rows = []
     for key in SETTING_KEYS:
         p = SETTINGS[key]
