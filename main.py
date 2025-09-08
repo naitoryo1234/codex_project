@@ -79,21 +79,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# iPhone Safari で列の横並びを維持するCSS（提供いただいた内容）
+# iPhone Safari での強制横並び（より強い指定）
 st.markdown(
     """
     <style>
     @media (max-width: 640px) {
-      div[data-testid="column"] {
-        width: calc(50% - 0.5rem) !important;
-        flex: 1 1 calc(50% - 0.5rem) !important;
-      }
-      div[data-testid="stHorizontalBlock"] {
-        flex-wrap: wrap !important;
-      }
-      div[data-testid="stNumberInput"] {
-        min-width: 0 !important;
-      }
+      div[data-testid="stHorizontalBlock"] { flex-direction: row !important; flex-wrap: nowrap !important; }
+      div[data-testid="stHorizontalBlock"] > div { width: 50% !important; min-width: 0 !important; flex: 0 0 50% !important; }
+      div[data-testid="column"] { width: 50% !important; min-width: 0 !important; flex: 0 0 50% !important; }
+      div[data-testid="stNumberInput"] { min-width: 0 !important; }
     }
     </style>
     """,
@@ -186,22 +180,7 @@ if submitted:
         grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
         st.metric(label="(1,2,4) / (5,6)", value=f"{grp124:.2f}% / {grp56:.2f}%")
 
-    # 表（モバイルで見やすい列順）
-    rows = []
-    for key in SETTING_KEYS:
-        p = SETTINGS[key]
-        rows.append(
-            {
-                "設定": key,
-                "理論(1/x)": round(1.0 / p, 2),
-                "事前(%)": round(priors_norm[key] * 100.0, 2),
-                "事後(%)": round(posteriors[key] * 100.0, 2),
-            }
-        )
-    df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
-    # 棒グラフ（ツールチップ付き、モバイルでタップしやすいサイズ）
+    # 棒グラフ（先に表示）
     chart_data = pd.DataFrame({
         "設定": SETTING_KEYS,
         "事後(%)": [posteriors[k] * 100.0 for k in SETTING_KEYS],
@@ -217,6 +196,21 @@ if submitted:
         .properties(height=260)
     )
     st.altair_chart(chart, use_container_width=True)
+
+    # 表（後に表示）
+    rows = []
+    for key in SETTING_KEYS:
+        p = SETTINGS[key]
+        rows.append(
+            {
+                "設定": key,
+                "理論(1/x)": round(1.0 / p, 2),
+                "事前(%)": round(priors_norm[key] * 100.0, 2),
+                "事後(%)": round(posteriors[key] * 100.0, 2),
+            }
+        )
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
 else:
     st.info("フォームに入力して『計算する』を押してください。事前確率はデフォルトで均等配分です。")
