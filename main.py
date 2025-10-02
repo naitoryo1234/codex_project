@@ -234,17 +234,47 @@ if submitted:
         else 0.0
     )
 
-    if st.session_state.n >= 200 and top_prob >= 0.75 and bayes_factor >= 3.0:
-        confidence_label = "高"
-    elif st.session_state.n >= 120 and top_prob >= 0.6:
-        confidence_label = "中"
+    if st.session_state.n >= 300 and top_prob >= 0.8 and bayes_factor >= 5.0:
+        star_rating = 5
+        confidence_label = "とても高い"
+    elif st.session_state.n >= 200 and top_prob >= 0.7 and bayes_factor >= 3.0:
+        star_rating = 4
+        confidence_label = "高め"
+    elif st.session_state.n >= 120 and top_prob >= 0.55 and bayes_factor >= 2.0:
+        star_rating = 3
+        confidence_label = "ふつう"
+    elif st.session_state.n >= 80 and top_prob >= 0.45:
+        star_rating = 2
+        confidence_label = "低め"
     else:
-        confidence_label = "低"
+        star_rating = 1
+        confidence_label = "かなり低い"
+
+    stars_text = "★" * star_rating + "☆" * (5 - star_rating)
 
     bayes_factor_text = "∞" if math.isinf(bayes_factor) else f"{bayes_factor:.1f}x"
     prob_gap_pct = prob_gap * 100.0
     ci_range_text = f"{ci_low * 100:.2f}% - {ci_high * 100:.2f}%"
     expected_top_percent = format_percent(expected_top)
+
+    if star_rating == 5:
+        reliability_comment = "十分なサンプルと差があり、判別結果はかなり信頼できます。"
+    elif star_rating == 4:
+        reliability_comment = "おおむね信頼できますが、念のためもう少しデータがあると安心です。"
+    elif star_rating == 3:
+        reliability_comment = "そこそこの裏付けがあります。追加で回して傾向を再確認しましょう。"
+    elif star_rating == 2:
+        reliability_comment = "まだブレが大きい状態です。サンプルを増やしてから判断することをおすすめします。"
+    else:
+        reliability_comment = "サンプルが不足しており判別はほとんどできません。まずはデータ収集を優先しましょう。"
+
+    thresholds_for_next = {1: 80, 2: 120, 3: 200, 4: 300}
+    if star_rating < 5:
+        target_n = thresholds_for_next.get(star_rating, st.session_state.n)
+        if st.session_state.n < target_n:
+            needed = target_n - st.session_state.n
+            reliability_comment += f" 目安としてあと約{needed}G回すと次の信頼度レベルを目指せます。"
+
 
     summary_lines = [
         "モンキーターンV 判別結果",
@@ -254,7 +284,8 @@ if submitted:
         f"最有力設定: 設定{top_key} ({format_percent(top_prob)})",
         f"低設定(1・2): {format_percent(low_prob)}",
         f"高設定(4・5・6): {format_percent(high_prob)}",
-        f"信頼度の目安: {confidence_label} (トップとの差 {prob_gap_pct:.2f}pt, ベイズ比 {bayes_factor_text})",
+        f"信頼度: {stars_text} ({confidence_label})",
+        f"コメント: {reliability_comment}",
         f"実測小役率95%CI: {ci_range_text} (n={st.session_state.n})",
         "各設定の事後確率:",
     ]
@@ -294,21 +325,22 @@ if submitted:
     reliability_col1, reliability_col2 = st.columns(2)
     with reliability_col1:
         st.metric(
-            label="信頼度の目安",
-            value=confidence_label,
-            delta=f"トップとの差 {prob_gap_pct:.2f}pt",
+            label="信頼度 (★5段階)",
+            value=stars_text,
+            delta=confidence_label,
         )
     with reliability_col2:
         st.metric(
             label="ベイズ比 / サンプル",
-            value=f"{bayes_factor_text} / {st.session_state.n}G",
-            delta=f"95%CI {ci_range_text}",
+            value=bayes_factor_text,
+            delta=f"{st.session_state.n}G / gap {prob_gap_pct:.2f}pt",
         )
     st.caption(
         f"理論値との差: {distance_sigma:.2f}σ（期待 {expected_top_percent}）"
         if st.session_state.n > 0
         else "理論値との比較には回転数が必要です。"
     )
+    st.markdown(f"**コメント**: {reliability_comment}")
 
     with st.expander("コピー内容を確認する", expanded=False):
         st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
