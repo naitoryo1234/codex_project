@@ -212,6 +212,40 @@ if submitted:
     grp124 = posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)
     grp56 = posteriors.get("5", 0.0) + posteriors.get("6", 0.0)
 
+    sorted_keys = sorted(SETTING_KEYS, key=lambda key: posteriors[key], reverse=True)
+    second_key = sorted_keys[1] if len(sorted_keys) > 1 else top_key
+    second_prob = posteriors.get(second_key, 0.0)
+    prob_gap = max(0.0, top_prob - second_prob)
+    bayes_factor = (top_prob / second_prob) if second_prob > 0 else float("inf")
+
+    se = (
+        math.sqrt(hit_prob * (1.0 - hit_prob) / st.session_state.n)
+        if 0 < st.session_state.n and 0 < hit_prob < 1
+        else 0.0
+    )
+    ci_low = max(0.0, hit_prob - 1.96 * se)
+    ci_high = min(1.0, hit_prob + 1.96 * se)
+
+    expected_top = SETTINGS[top_key]
+    distance_sigma = (
+        abs(hit_prob - expected_top)
+        / math.sqrt(expected_top * (1.0 - expected_top) / st.session_state.n)
+        if st.session_state.n > 0
+        else 0.0
+    )
+
+    if st.session_state.n >= 200 and top_prob >= 0.75 and bayes_factor >= 3.0:
+        confidence_label = "高"
+    elif st.session_state.n >= 120 and top_prob >= 0.6:
+        confidence_label = "中"
+    else:
+        confidence_label = "低"
+
+    bayes_factor_text = "∞" if math.isinf(bayes_factor) else f"{bayes_factor:.1f}x"
+    prob_gap_pct = prob_gap * 100.0
+    ci_range_text = f"{ci_low * 100:.2f}% - {ci_high * 100:.2f}%"
+    expected_top_percent = format_percent(expected_top)
+
     summary_lines = [
         "モンキーターンV 判別結果",
         f"総回転数: {st.session_state.n}G",
@@ -220,6 +254,8 @@ if submitted:
         f"最有力設定: 設定{top_key} ({format_percent(top_prob)})",
         f"低設定(1・2): {format_percent(low_prob)}",
         f"高設定(4・5・6): {format_percent(high_prob)}",
+        f"信頼度の目安: {confidence_label} (トップとの差 {prob_gap_pct:.2f}pt, ベイズ比 {bayes_factor_text})",
+        f"実測小役率95%CI: {ci_range_text} (n={st.session_state.n})",
         "各設定の事後確率:",
     ]
 
@@ -254,6 +290,25 @@ if submitted:
 
     copy_html = copy_html.replace("__BUTTON_ID__", button_id).replace("__COPY_TEXT__", copy_json)
     components.html(copy_html, height=70, scrolling=False)
+
+    reliability_col1, reliability_col2 = st.columns(2)
+    with reliability_col1:
+        st.metric(
+            label="信頼度の目安",
+            value=confidence_label,
+            delta=f"トップとの差 {prob_gap_pct:.2f}pt",
+        )
+    with reliability_col2:
+        st.metric(
+            label="ベイズ比 / サンプル",
+            value=f"{bayes_factor_text} / {st.session_state.n}G",
+            delta=f"95%CI {ci_range_text}",
+        )
+    st.caption(
+        f"理論値との差: {distance_sigma:.2f}σ（期待 {expected_top_percent}）"
+        if st.session_state.n > 0
+        else "理論値との比較には回転数が必要です。"
+    )
 
     with st.expander("コピー内容を確認する", expanded=False):
         st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
