@@ -84,7 +84,217 @@ def render_small_text(text: str, classes: str = "reliability-comment") -> None:
     )
 
 
+star_labels = {
+    5: "かなり安心",
+    4: "やや安心",
+    3: "五分五分",
+    2: "慎重",
+    1: "厳しい",
+}
+
+GOAL_CONFIG = {
+    "456": {
+        "min_sample_warn": 90,
+        "min_sample_good": 170,
+        "ci_warn": 18.0,
+        "ci_good": 11.0,
+        "goal_thresholds": {"high": 70.0, "mid": 60.0, "low": 45.0},
+        "diff_thresholds": {"high": 12.0, "mid": 6.0},
+        "ratio_thresholds": {"high": 1.8, "mid": 1.3},
+        "negative_diff_thresholds": {"mid": -6.0, "high": -12.0},
+        "strong_diff": 14.0,
+        "strong_ratio": 2.0,
+        "diff_close": 6.0,
+        "comments": {
+            "insufficient": "サンプルが少なく、456の判別はまだ揺らぎが大きい状況です。まずはデータを集めましょう。",
+            "very_low": "現状は低設定寄りのデータで456狙いは厳しい展開です。",
+            "low": "456狙いにはまだ裏付けが不足しています。慎重に様子を見ましょう。",
+            "mid": "456の芽はありますが、追加サンプルで傾向を再確認したいラインです。",
+            "high": "456寄りが濃厚です。もう少し回せば確信が持てそうです。",
+            "very_high": "456狙いでも安心して粘れるデータです。",
+        },
+    },
+    "56": {
+        "min_sample_warn": 130,
+        "min_sample_good": 240,
+        "ci_warn": 12.0,
+        "ci_good": 7.5,
+        "goal_thresholds": {"high": 58.0, "mid": 50.0, "low": 38.0},
+        "diff_thresholds": {"high": 10.0, "mid": 5.0},
+        "ratio_thresholds": {"high": 1.7, "mid": 1.2},
+        "negative_diff_thresholds": {"mid": -4.0, "high": -8.0},
+        "strong_diff": 12.0,
+        "strong_ratio": 1.8,
+        "diff_close": 4.5,
+        "comments": {
+            "insufficient": "サンプルが少なく、設定5・6の判別にはまだ裏付けが足りません。追加で回転数を確保しましょう。",
+            "very_low": "設定5・6はかなり薄い状況です。無理に56狙いに固執しない方が賢明です。",
+            "low": "設定5・6を狙うには裏付けが不足しています。設定4ラインも視野に慎重に。",
+            "mid": "設定5・6の可能性はありますが、設定4との競り合いです。追加サンプルで見極めを。",
+            "high": "設定5・6がかなり有力です。押し切るならチャンスです。",
+            "very_high": "設定5・6本命で勝負できる濃さです。大きなチャンスと言えます。",
+        },
+    },
+}
+
+thresholds_456 = [
+    (5, {"min_n": 280, "min_goal": 0.78, "min_diff": 0.35, "min_ratio": 4.0}),
+    (4, {"min_n": 200, "min_goal": 0.68, "min_diff": 0.25, "min_ratio": 3.0}),
+    (3, {"min_n": 130, "min_goal": 0.55, "min_diff": 0.15, "min_ratio": 2.1}),
+    (2, {"min_n": 90, "min_goal": 0.45, "min_diff": 0.05, "min_ratio": 1.2}),
+]
+
+thresholds_56 = [
+    (5, {"min_n": 260, "min_goal": 0.55, "min_diff": 0.22, "min_ratio": 3.0}),
+    (4, {"min_n": 180, "min_goal": 0.45, "min_diff": 0.16, "min_ratio": 2.4}),
+    (3, {"min_n": 120, "min_goal": 0.35, "min_diff": 0.08, "min_ratio": 1.6}),
+    (2, {"min_n": 80, "min_goal": 0.28, "min_diff": 0.03, "min_ratio": 1.1}),
+]
+
+
 # ページ設定 (wide レイアウト + モバイル最適化)
+
+
+
+def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds, ci_range_pct: float):
+    config = GOAL_CONFIG[goal_code]
+    sample_n = st.session_state.n
+    ratio = goal_prob / alt_prob if alt_prob > 0 else float("inf")
+    diff = goal_prob - alt_prob
+    diff_pct = diff * 100.0
+    goal_prob_pct = goal_prob * 100.0
+
+    star = 1
+    thresholds_dict = {star_key: cond for star_key, cond in thresholds}
+    for star_candidate, cond in thresholds:
+        cond_ratio = cond.get("min_ratio", 0.0)
+        cond_diff = cond.get("min_diff", 0.0)
+        cond_goal = cond.get("min_goal", 0.0)
+        cond_n = cond.get("min_n", 0)
+        if (
+            sample_n >= cond_n
+            and goal_prob >= cond_goal
+            and diff >= cond_diff
+            and ratio >= cond_ratio
+        ):
+            star = star_candidate
+            break
+
+    stars_text = "★" * star + "☆" * (5 - star)
+    ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
+
+    insufficient_sample = (
+        sample_n < config["min_sample_warn"]
+        or ci_range_pct > config["ci_warn"]
+    )
+    if (
+        diff_pct >= config["strong_diff"]
+        and ratio >= config["strong_ratio"]
+        and goal_prob_pct >= config["goal_thresholds"]["mid"]
+    ):
+        insufficient_sample = False
+
+    score = 0
+
+    if goal_prob_pct >= config["goal_thresholds"]["high"]:
+        score += 2
+    elif goal_prob_pct >= config["goal_thresholds"]["mid"]:
+        score += 1
+    elif goal_prob_pct <= config["goal_thresholds"]["low"]:
+        score -= 1
+
+    if diff_pct >= config["diff_thresholds"]["high"]:
+        score += 2
+    elif diff_pct >= config["diff_thresholds"]["mid"]:
+        score += 1
+    elif diff_pct <= config["negative_diff_thresholds"]["high"]:
+        score -= 2
+    elif diff_pct <= config["negative_diff_thresholds"]["mid"]:
+        score -= 1
+
+    if ratio >= config["ratio_thresholds"]["high"]:
+        score += 2
+    elif ratio >= config["ratio_thresholds"]["mid"]:
+        score += 1
+    elif ratio <= 1.0 / config["ratio_thresholds"]["high"]:
+        score -= 2
+    elif ratio <= 1.0 / config["ratio_thresholds"]["mid"]:
+        score -= 1
+
+    if ci_range_pct <= config["ci_good"]:
+        score += 1
+    elif ci_range_pct >= config["ci_warn"]:
+        score -= 1
+
+    if sample_n >= config["min_sample_good"]:
+        score += 1
+    elif sample_n < config["min_sample_warn"]:
+        score -= 1
+
+    if insufficient_sample:
+        star = 2 if goal_prob_pct >= config["goal_thresholds"]["mid"] else 1
+    else:
+        if diff_pct < config["diff_thresholds"]["mid"]:
+            score -= 1
+        if score >= 5:
+            star = 5
+        elif score >= 3:
+            star = 4
+        elif score >= 1:
+            star = 3
+        elif score >= -1:
+            star = 2
+        else:
+            star = 1
+
+    stars_text = "★" * star + "☆" * (5 - star)
+
+    comments = config["comments"]
+    if insufficient_sample:
+        comment = comments["insufficient"]
+    else:
+        if star == 5:
+            comment = comments["very_high"]
+        elif star == 4:
+            comment = comments["high"]
+        elif star == 3:
+            comment = comments["mid"]
+        elif star == 2:
+            comment = comments["low"]
+        else:
+            comment = comments["very_low"]
+
+        diff_close = config["diff_close"]
+        if diff_pct >= config["diff_thresholds"]["high"] and ratio >= config["ratio_thresholds"]["high"]:
+            comment += " 優位性ははっきりしています。"
+        elif -diff_close <= diff_pct <= diff_close:
+            comment += " 今は競り合いなので追加のデータで見極めましょう。"
+        elif diff_pct < -diff_close:
+            comment += " 現状は他設定の方が優勢です。"
+
+    comment += f" (差 {diff_pct:.1f}pt / 比 {ratio_text})"
+
+    thresholds_dict = {star_key: cond for star_key, cond in thresholds}
+    for higher_star in sorted(thresholds_dict.keys()):
+        if higher_star > star:
+            min_n = thresholds_dict[higher_star].get("min_n", sample_n)
+            if sample_n < min_n:
+                needed = min_n - sample_n
+                comment += f" 目安としてあと約{needed}G回すと★{higher_star}を狙えます。"
+            break
+
+    return {
+        "stars": star,
+        "stars_text": stars_text,
+        "label": star_labels[star],
+        "comment": comment,
+        "diff_pct": diff_pct,
+        "ratio_text": ratio_text,
+        "goal_prob": goal_prob,
+        "alt_prob": alt_prob,
+        "insufficient": insufficient_sample,
+    }
+
 st.set_page_config(
     page_title="設定推定ツール",
     page_icon="🎰",
@@ -245,197 +455,6 @@ if submitted:
 
     expected_top = SETTINGS[top_key]
 
-    star_labels = {
-        5: "かなり安心",
-        4: "やや安心",
-        3: "五分五分",
-        2: "慎重",
-        1: "厳しい",
-    }
-
-    GOAL_CONFIG = {
-        "456": {
-            "min_sample_warn": 90,
-            "min_sample_good": 170,
-            "ci_warn": 18.0,
-            "ci_good": 11.0,
-            "goal_thresholds": {"high": 70.0, "mid": 60.0, "low": 45.0},
-            "diff_thresholds": {"high": 12.0, "mid": 6.0},
-            "ratio_thresholds": {"high": 1.8, "mid": 1.3},
-            "negative_diff_thresholds": {"mid": -6.0, "high": -12.0},
-            "strong_diff": 14.0,
-            "strong_ratio": 2.0,
-            "diff_close": 6.0,
-            "comments": {
-                "insufficient": "サンプルが少なく、456の判別はまだ揺らぎが大きい状況です。まずはデータを集めましょう。",
-                "very_low": "現状は低設定寄りのデータで456狙いは厳しい展開です。",
-                "low": "456狙いにはまだ裏付けが不足しています。慎重に様子を見ましょう。",
-                "mid": "456の芽はありますが、追加サンプルで傾向を再確認したいラインです。",
-                "high": "456寄りが濃厚です。もう少し回せば確信が持てそうです。",
-                "very_high": "456狙いでも安心して粘れるデータです。",
-            },
-        },
-        "56": {
-            "min_sample_warn": 130,
-            "min_sample_good": 240,
-            "ci_warn": 12.0,
-            "ci_good": 7.5,
-            "goal_thresholds": {"high": 58.0, "mid": 50.0, "low": 38.0},
-            "diff_thresholds": {"high": 10.0, "mid": 5.0},
-            "ratio_thresholds": {"high": 1.7, "mid": 1.2},
-            "negative_diff_thresholds": {"mid": -4.0, "high": -8.0},
-            "strong_diff": 12.0,
-            "strong_ratio": 1.8,
-            "diff_close": 4.5,
-            "comments": {
-                "insufficient": "サンプルが少なく、設定5・6の判別にはまだ裏付けが足りません。追加で回転数を確保しましょう。",
-                "very_low": "設定5・6はかなり薄い状況です。無理に56狙いに固執しない方が賢明です。",
-                "low": "設定5・6を狙うには裏付けが不足しています。設定4ラインも視野に慎重に。",
-                "mid": "設定5・6の可能性はありますが、設定4との競り合いです。追加サンプルで見極めを。",
-                "high": "設定5・6がかなり有力です。押し切るならチャンスです。",
-                "very_high": "設定5・6本命で勝負できる濃さです。大きなチャンスと言えます。",
-            },
-        },
-    }
-
-    def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds, ci_range_pct: float):
-        config = GOAL_CONFIG[goal_code]
-        sample_n = st.session_state.n
-        ratio = goal_prob / alt_prob if alt_prob > 0 else float("inf")
-        diff = goal_prob - alt_prob
-        diff_pct = diff * 100.0
-        goal_prob_pct = goal_prob * 100.0
-
-        star = 1
-        thresholds_dict = {star_key: cond for star_key, cond in thresholds}
-        for star_candidate, cond in thresholds:
-            cond_ratio = cond.get("min_ratio", 0.0)
-            cond_diff = cond.get("min_diff", 0.0)
-            cond_goal = cond.get("min_goal", 0.0)
-            cond_n = cond.get("min_n", 0)
-            if (
-                sample_n >= cond_n
-                and goal_prob >= cond_goal
-                and diff >= cond_diff
-                and ratio >= cond_ratio
-            ):
-                star = star_candidate
-                break
-
-        stars_text = "★" * star + "☆" * (5 - star)
-        ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
-
-        insufficient_sample = (
-            sample_n < config["min_sample_warn"]
-            or ci_range_pct > config["ci_warn"]
-        )
-        if (
-            diff_pct >= config["strong_diff"]
-            and ratio >= config["strong_ratio"]
-            and goal_prob_pct >= config["goal_thresholds"]["mid"]
-        ):
-            insufficient_sample = False
-
-        score = 0
-
-        if goal_prob_pct >= config["goal_thresholds"]["high"]:
-            score += 2
-        elif goal_prob_pct >= config["goal_thresholds"]["mid"]:
-            score += 1
-        elif goal_prob_pct <= config["goal_thresholds"]["low"]:
-            score -= 1
-
-        if diff_pct >= config["diff_thresholds"]["high"]:
-            score += 2
-        elif diff_pct >= config["diff_thresholds"]["mid"]:
-            score += 1
-        elif diff_pct <= config["negative_diff_thresholds"]["high"]:
-            score -= 2
-        elif diff_pct <= config["negative_diff_thresholds"]["mid"]:
-            score -= 1
-
-        if ratio >= config["ratio_thresholds"]["high"]:
-            score += 2
-        elif ratio >= config["ratio_thresholds"]["mid"]:
-            score += 1
-        elif ratio <= 1.0 / config["ratio_thresholds"]["high"]:
-            score -= 2
-        elif ratio <= 1.0 / config["ratio_thresholds"]["mid"]:
-            score -= 1
-
-        if ci_range_pct <= config["ci_good"]:
-            score += 1
-        elif ci_range_pct >= config["ci_warn"]:
-            score -= 1
-
-        if sample_n >= config["min_sample_good"]:
-            score += 1
-        elif sample_n < config["min_sample_warn"]:
-            score -= 1
-
-        if insufficient_sample:
-            star = 2 if goal_prob_pct >= config["goal_thresholds"]["mid"] else 1
-        else:
-            if diff_pct < config["diff_thresholds"]["mid"]:
-                score -= 1
-            if score >= 5:
-                star = 5
-            elif score >= 3:
-                star = 4
-            elif score >= 1:
-                star = 3
-            elif score >= -1:
-                star = 2
-            else:
-                star = 1
-
-        stars_text = "★" * star + "☆" * (5 - star)
-
-        comments = config["comments"]
-        if insufficient_sample:
-            comment = comments["insufficient"]
-        else:
-            if star == 5:
-                comment = comments["very_high"]
-            elif star == 4:
-                comment = comments["high"]
-            elif star == 3:
-                comment = comments["mid"]
-            elif star == 2:
-                comment = comments["low"]
-            else:
-                comment = comments["very_low"]
-
-            diff_close = config["diff_close"]
-            if diff_pct >= config["diff_thresholds"]["high"] and ratio >= config["ratio_thresholds"]["high"]:
-                comment += " 優位性ははっきりしています。"
-            elif -diff_close <= diff_pct <= diff_close:
-                comment += " 今は競り合いなので追加のデータで見極めましょう。"
-            elif diff_pct < -diff_close:
-                comment += " 現状は他設定の方が優勢です。"
-
-        comment += f" (差 {diff_pct:.1f}pt / 比 {ratio_text})"
-
-        thresholds_dict = {star_key: cond for star_key, cond in thresholds}
-        for higher_star in sorted(thresholds_dict.keys()):
-            if higher_star > star:
-                min_n = thresholds_dict[higher_star].get("min_n", sample_n)
-                if sample_n < min_n:
-                    needed = min_n - sample_n
-                    comment += f" 目安としてあと約{needed}G回すと★{higher_star}を狙えます。"
-                break
-
-        return {
-            "stars": star,
-            "stars_text": stars_text,
-            "label": star_labels[star],
-            "comment": comment,
-            "diff_pct": diff_pct,
-            "ratio_text": ratio_text,
-            "goal_prob": goal_prob,
-            "alt_prob": alt_prob,
-            "insufficient": insufficient_sample,
-        }
 
     rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456, ci_range_pct)
     rating_56 = evaluate_goal("56", grp56, grp124, thresholds_56, ci_range_pct)
