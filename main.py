@@ -95,9 +95,9 @@ star_labels = {
 GOAL_CONFIG = {
     "456": {
         "min_sample_warn": 120,
-        "min_sample_good": 200,
+        "min_sample_good": 220,
         "ci_warn": 18.0,
-        "ci_good": 11.0,
+        "ci_good": 10.5,
         "goal_thresholds": {"high": 75.0, "mid": 65.0, "low": 48.0},
         "diff_thresholds": {"high": 15.0, "mid": 7.0},
         "negative_diff_thresholds": {"mid": -5.0, "high": -10.0},
@@ -105,6 +105,7 @@ GOAL_CONFIG = {
         "strong_diff": 16.0,
         "strong_ratio": 2.2,
         "diff_close": 6.0,
+        "strict": {"goal": 78.0, "diff": 18.0, "ratio": 2.4, "sample": 240},
         "comments": {
             "insufficient": "サンプルが少なく、456の判別にはまだ揺らぎが大きい状況です。まずはデータを集めましょう。",
             "very_low": "現状は低設定寄りのデータで456狙いは厳しい展開です。",
@@ -126,6 +127,7 @@ GOAL_CONFIG = {
         "strong_diff": 10.0,
         "strong_ratio": 1.7,
         "diff_close": 4.5,
+        "strict": {"goal": 62.0, "diff": 12.0, "ratio": 1.9, "sample": 220},
         "comments": {
             "insufficient": "サンプルが少なく、設定5・6の判別にはまだ裏付けが足りません。追加で回転数を確保しましょう。",
             "very_low": "設定5・6はかなり薄い状況です。無理に56狙いに固執しない方が賢明です。",
@@ -138,17 +140,17 @@ GOAL_CONFIG = {
 }
 
 thresholds_456 = [
-    (5, {"min_n": 260, "min_goal": 0.80, "min_diff": 0.28, "min_ratio": 2.6}),
-    (4, {"min_n": 200, "min_goal": 0.70, "min_diff": 0.20, "min_ratio": 2.1}),
-    (3, {"min_n": 160, "min_goal": 0.60, "min_diff": 0.12, "min_ratio": 1.6}),
-    (2, {"min_n": 120, "min_goal": 0.52, "min_diff": 0.05, "min_ratio": 1.2}),
+    (5, {"min_n": 280, "min_goal": 0.82, "min_diff": 0.32, "min_ratio": 2.6}),
+    (4, {"min_n": 220, "min_goal": 0.74, "min_diff": 0.22, "min_ratio": 2.1}),
+    (3, {"min_n": 180, "min_goal": 0.65, "min_diff": 0.12, "min_ratio": 1.6}),
+    (2, {"min_n": 140, "min_goal": 0.54, "min_diff": 0.05, "min_ratio": 1.2}),
 ]
 
 thresholds_56 = [
-    (5, {"min_n": 260, "min_goal": 0.58, "min_diff": 0.15, "min_ratio": 2.0}),
-    (4, {"min_n": 210, "min_goal": 0.50, "min_diff": 0.10, "min_ratio": 1.6}),
-    (3, {"min_n": 170, "min_goal": 0.42, "min_diff": 0.06, "min_ratio": 1.3}),
-    (2, {"min_n": 140, "min_goal": 0.35, "min_diff": 0.02, "min_ratio": 1.1}),
+    (5, {"min_n": 260, "min_goal": 0.62, "min_diff": 0.15, "min_ratio": 2.0}),
+    (4, {"min_n": 220, "min_goal": 0.54, "min_diff": 0.10, "min_ratio": 1.7}),
+    (3, {"min_n": 180, "min_goal": 0.46, "min_diff": 0.06, "min_ratio": 1.4}),
+    (2, {"min_n": 160, "min_goal": 0.38, "min_diff": 0.02, "min_ratio": 1.15}),
 ]
 
 
@@ -222,16 +224,31 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
         if diff_pct < diff_thresholds["mid"]:
             score -= 1
 
-        if score >= 6:
+        if score >= 7:
             star = 5
         elif score >= 4:
             star = 4
-        elif score >= 2:
+        elif score >= 1:
             star = 3
-        elif score >= 0:
+        elif score >= -1:
             star = 2
         else:
             star = 1
+
+        if star == 5:
+            strict = config.get("strict", {})
+            strict_goal = strict.get("goal", thresholds_goal["high"])
+            strict_diff = strict.get("diff", diff_thresholds["high"])
+            strict_ratio = strict.get("ratio", ratio_thresholds["high"]) 
+            strict_sample = strict.get("sample", config["min_sample_good"])
+            if (
+                goal_prob_pct < strict_goal
+                or diff_pct < strict_diff
+                or ratio < strict_ratio
+                or sample_n < strict_sample
+                or ci_range_pct > config["ci_good"]
+            ):
+                star = 4
 
     stars_text = "★" * star + "☆" * (5 - star)
     ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
@@ -240,7 +257,7 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
     if insufficient_sample:
         comment = comments["insufficient"]
     else:
-        if star >= 5:
+        if star == 5:
             comment = comments["very_high"]
         elif star == 4:
             comment = comments["high"]
@@ -254,7 +271,7 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
         diff_close = config["diff_close"]
         if diff_pct >= diff_thresholds["high"] and ratio >= ratio_thresholds["high"]:
             comment += " 優位性ははっきりしています。"
-        elif -diff_close <= diff_pct <= diff_close:
+        elif -diff_close <= diff_pct <= diff_close and star <= 3:
             comment += " 今は競り合いなので追加のデータで見極めましょう。"
         elif diff_pct < -diff_close:
             comment += " 現状は他設定の方が優勢です。"
@@ -262,13 +279,25 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
     comment += f" (差 {diff_pct:.1f}pt / 比 {ratio_text})"
 
     thresholds_dict = {star_key: cond for star_key, cond in thresholds}
-    for higher_star in sorted(thresholds_dict.keys()):
-        if higher_star > star:
-            min_n_required = thresholds_dict[higher_star].get("min_n", sample_n)
-            if sample_n < min_n_required:
-                needed = min_n_required - sample_n
-                comment += f" 目安としてあと約{needed}G回すと★{higher_star}を狙えます。"
-            break
+    target_n = None
+    if insufficient_sample:
+        target_n = max(config["min_sample_warn"], config["min_sample_good"])
+    else:
+        for higher_star in sorted(thresholds_dict.keys()):
+            if higher_star > star:
+                target_n = thresholds_dict[higher_star].get("min_n", sample_n)
+                break
+        if target_n is None and star < 5:
+            target_n = config["min_sample_good"]
+        if target_n is not None and target_n < config["min_sample_warn"]:
+            target_n = config["min_sample_warn"]
+
+    if target_n is not None:
+        needed = target_n - sample_n
+        if needed > 0:
+            needed = int(math.ceil(needed / 50.0) * 50)
+            if needed >= 50:
+                comment += f" 目安としてあと約{needed}G回すと次の信頼度を狙えます。"
 
     return {
         "stars": star,
@@ -281,6 +310,7 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
         "alt_prob": alt_prob,
         "insufficient": insufficient_sample,
     }
+
 
 
 
@@ -449,7 +479,6 @@ if submitted:
             rating_56["comment"] += " 456視点ではまだ確信しきれませんが、56勝負に切り替える価値があります。"
         elif rating_56["stars"] <= 2 and rating_456["stars"] >= 3:
             rating_56["comment"] += " 設定4までは射程圏ですが、56単体で見ると追加サンプルが欲しい状況です。"
-
     summary_lines = [
         "モンキーターンV 判別結果",
         f"総回転数: {st.session_state.n}G",
