@@ -1,4 +1,5 @@
-﻿import math
+import html
+import math
 from typing import Dict, List
 
 import altair as alt
@@ -65,7 +66,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# モバイルでの余白・フォント調整、安全領域を確保
+# モバイル向けの余白・フォント調整、安全領域を確保
 st.markdown(
     """
     <style>
@@ -78,6 +79,9 @@ st.markdown(
       .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
       .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
       .micro-row .stButton > button { padding: 0.14rem 0.46rem; font-size: 0.82rem; min-width: 60px; }
+      .copy-share-container { margin-top: 1.5rem; }
+      .copy-share-container button { padding: 0.5rem 0.9rem; background-color: #2F80ED; border: none; border-radius: 0.5rem; color: #ffffff; font-size: 0.95rem; cursor: pointer; }
+      .copy-share-container button:hover { background-color: #1C5FC4; }
       div[data-testid="stMetricValue"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
@@ -90,7 +94,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# iPhone Safari での強制横並び対策を強化
+# iPhone Safari での横並びを強制
 st.markdown(
     """
     <style>
@@ -146,7 +150,7 @@ with st.form("inputs", clear_on_submit=False):
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 事前確率はフォーム送信時に自動で正規化
+    # 事前確率はフォーム送信時に自動正規化
     st.markdown("事前確率は合計値に応じて自動で正規化されます。")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
 
@@ -221,14 +225,46 @@ if submitted:
     rows = []
     for key in SETTING_KEYS:
         p = SETTINGS[key]
-        rows.append({
-            "設定": key,
-            "確率(1/x)": round(1.0 / p, 2),
-            "事前(%)": round(priors_norm[key] * 100.0, 2),
-            "事後(%)": round(posteriors[key] * 100.0, 2),
-        })
+        rows.append(
+            {
+                "設定": key,
+                "確率(1/x)": round(1.0 / p, 2),
+                "事前(%)": round(priors_norm[key] * 100.0, 2),
+                "事後(%)": round(posteriors[key] * 100.0, 2),
+            }
+        )
     df = pd.DataFrame(rows)
     st.dataframe(df, use_container_width=True, hide_index=True)
 
+    # 共有用テキストとコピー用ボタン
+    summary_lines = [
+        "モンキーターンV 判別結果",
+        f"総回転数: {st.session_state.n}G",
+        f"小役回数: {st.session_state.k}回",
+        f"最有力設定: 設定{top_key} ({top_prob:.2f}%)",
+        f"低設定(1・2): {low_prob:.2f}%",
+        f"高設定(4・5・6): {high_prob:.2f}%",
+        "各設定の事後確率:",
+    ]
+    for key in SETTING_KEYS:
+        summary_lines.append(
+            f"  設定{key}: {posteriors[key] * 100.0:.2f}% (事前 {priors_norm[key] * 100.0:.2f}%)"
+        )
+    copy_text = "\n".join(summary_lines)
+
+    st.text_area("共有用テキスト", value=copy_text, height=220)
+
+    escaped_text = html.escape(copy_text)
+    st.markdown(
+        f"""
+        <div class="copy-share-container">
+          <textarea id="share-text" style="position: absolute; left: -9999px; top: -9999px;" aria-hidden="true">{escaped_text}</textarea>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('share-text').value).then(() => window.alert('判別結果をコピーしました。')).catch(() => window.alert('コピーに失敗しました。'));">
+            判別結果をコピー
+          </button>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 else:
     st.info("フォームに入力し「計算する」を押してください。事前確率は未設定でも自動で均等化されます。")
