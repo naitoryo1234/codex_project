@@ -96,7 +96,7 @@ st.markdown(
       .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
       .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
       .micro-row .stButton > button { padding: 0.14rem 0.46rem; font-size: 0.82rem; min-width: 60px; }
-      .copy-share-container { margin: 1rem 0 1.5rem; }
+      .copy-share-container { margin: 0.6rem 0 0.8rem; }
       .copy-share-container button { padding: 0.5rem 0.9rem; background-color: #2F80ED; border: none; border-radius: 0.5rem; color: #ffffff; font-size: 0.95rem; cursor: pointer; }
       .copy-share-container button:hover { background-color: #1C5FC4; }
       div[data-testid="stMetricValue"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
@@ -253,7 +253,7 @@ if submitted:
     """
 
     copy_html = copy_html.replace("__BUTTON_ID__", button_id).replace("__COPY_TEXT__", copy_json)
-    components.html(copy_html, height=120, scrolling=False)
+    components.html(copy_html, height=70, scrolling=False)
 
     with st.expander("コピー内容を確認する", expanded=False):
         st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
