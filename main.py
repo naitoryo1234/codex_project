@@ -275,6 +275,20 @@ if submitted:
             needed = target_n - st.session_state.n
             reliability_comment += f" 目安としてあと約{needed}G回すと次の信頼度レベルを目指せます。"
 
+    high_group_prob = sum(posteriors.get(key, 0.0) for key in ["5", "6"])
+    mid_group_prob = posteriors.get("4", 0.0)
+    low_group_prob = sum(posteriors.get(key, 0.0) for key in ["1", "2"])
+
+    if high_group_prob >= 0.5 and high_group_prob - mid_group_prob >= 0.2:
+        reliability_comment += " 現状は設定5・6が非常に濃厚です。大きなブレが無ければ高設定を意識した立ち回りが有効です。"
+    elif mid_group_prob >= 0.5 and high_group_prob <= 0.15:
+        reliability_comment += " 設定4ラインが最も有力です。設定5・6を狙うには展開がやや厳しいかもしれません。"
+    elif high_group_prob <= 0.1 and low_group_prob >= 0.4:
+        reliability_comment += " 設定は1〜2寄りの可能性が高く、上位設定への期待は薄いです。"
+    elif high_group_prob <= 0.2 and high_group_prob < mid_group_prob:
+        reliability_comment += " 設定5・6を狙うには確率がかなり低い状態です。追加投資は慎重に判断しましょう。"
+
+
 
     summary_lines = [
         "モンキーターンV 判別結果",
