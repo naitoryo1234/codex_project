@@ -296,6 +296,8 @@ if submitted:
 
         stars_text = "★" * star + "☆" * (5 - star)
         ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
+        min_sample_for_consideration = thresholds[-1][1].get("min_n", 0)
+        insufficient_sample = sample_n < max(min_sample_for_consideration, 60)
 
         base_comments = {
             "456": {
@@ -314,7 +316,16 @@ if submitted:
             },
         }
 
-        comment = base_comments[goal_code][star]
+        shortage_comments = {
+            "456": "サンプルが少ないため456の判断はまだ揺らぎが大きいです。まずはデータを集めましょう。",
+            "56": "サンプル不足のため56の信頼度は評価しきれません。追加で回転数を確保して様子を見ましょう。",
+        }
+
+        if insufficient_sample and star <= 3:
+            comment = shortage_comments[goal_code]
+        else:
+            comment = base_comments[goal_code][star]
+
         comment += f" (差 {diff_pct:.1f}pt / 比 {ratio_text})"
 
         next_needed = 0
@@ -336,6 +347,7 @@ if submitted:
             "goal_prob": goal_prob,
             "alt_prob": alt_prob,
         }
+
 
     rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456)
     rating_56 = evaluate_goal("56", grp56, grp124, thresholds_56)
