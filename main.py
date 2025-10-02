@@ -454,6 +454,7 @@ if submitted:
 
 
     expected_top = SETTINGS[top_key]
+    expected_top_percent = format_percent(expected_top)
 
 
     rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456, ci_range_pct)
