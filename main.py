@@ -1,4 +1,4 @@
-import html
+import json
 import math
 from typing import Dict, List
 
@@ -58,7 +58,17 @@ def compute_posteriors(num_spins: int, num_hits: int, priors: Dict[str, float]) 
     return priors
 
 
-# ページ設定 (wide レイアウト + モバイル最適化)
+def format_one_over(prob: float) -> str:
+    if prob <= 0.0:
+        return "0"
+    inv = 1.0 / prob
+    if inv >= 1000:
+        return f"1/{inv:,.0f}"
+    if inv >= 100:
+        return f"1/{inv:.1f}"
+    return f"1/{inv:.2f}"
+
+
 st.set_page_config(
     page_title="設定推定ツール",
     page_icon="🎰",
@@ -66,7 +76,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# モバイル向けの余白・フォント調整、安全領域を確保
 st.markdown(
     """
     <style>
@@ -94,7 +103,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# iPhone Safari での横並びを強制
 st.markdown(
     """
     <style>
@@ -111,7 +119,6 @@ st.markdown(
 
 st.title("モンキーターンV判別ツール")
 
-# セッション保存用の初期値
 if "n" not in st.session_state:
     st.session_state.n = 1000
 if "k" not in st.session_state:
@@ -120,7 +127,6 @@ if "k" not in st.session_state:
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
 
-    # N と k を横並びで配置。インクリメントボタンは小さめに配置。
     col_n, col_k = st.columns(2, gap="small")
     with col_n:
         n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
@@ -150,7 +156,6 @@ with st.form("inputs", clear_on_submit=False):
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 事前確率はフォーム送信時に自動正規化
     st.markdown("事前確率は合計値に応じて自動で正規化されます。")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
 
@@ -184,67 +189,75 @@ if submitted:
     posteriors = compute_posteriors(int(st.session_state.n), int(st.session_state.k), priors)
     priors_norm = normalize(priors)
 
-    hit_rate = (st.session_state.k / st.session_state.n * 100.0) if st.session_state.n > 0 else 0.0
+    hit_prob = (st.session_state.k / st.session_state.n) if st.session_state.n > 0 else 0.0
+
+    top_key = max(posteriors, key=posteriors.get)
+    top_prob = posteriors[top_key]
+
+    low_prob = sum(posteriors.get(key, 0.0) for key in ["1", "2"])
+    high_prob = sum(posteriors.get(key, 0.0) for key in ["4", "5", "6"])
+    grp124 = posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)
+    grp56 = posteriors.get("5", 0.0) + posteriors.get("6", 0.0)
 
     summary_lines = [
         "モンキーターンV 判別結果",
         f"総回転数: {st.session_state.n}G",
         f"小役回数: {st.session_state.k}回",
-        f"実測小役確率: {hit_rate:.2f}% ({st.session_state.k}/{st.session_state.n})",
+        f"実測小役確率: {format_one_over(hit_prob)} ({st.session_state.k}/{st.session_state.n})",
+        f"最有力設定: 設定{top_key} ({format_one_over(top_prob)})",
+        f"低設定(1・2): {format_one_over(low_prob)}",
+        f"高設定(4・5・6): {format_one_over(high_prob)}",
+        "各設定の事後確率:",
     ]
-
-    top_key = max(posteriors, key=posteriors.get)
-    top_prob = posteriors[top_key] * 100.0
-    summary_lines.extend(
-        [
-            f"最有力設定: 設定{top_key} ({top_prob:.2f}%)",
-        ]
-    )
-
-    low_prob = sum(posteriors.get(key, 0.0) for key in ["1", "2"]) * 100.0
-    high_prob = sum(posteriors.get(key, 0.0) for key in ["4", "5", "6"]) * 100.0
-    summary_lines.extend(
-        [
-            f"低設定(1・2): {low_prob:.2f}%",
-            f"高設定(4・5・6): {high_prob:.2f}%",
-            "各設定の事後確率:",
-        ]
-    )
 
     for key in SETTING_KEYS:
         summary_lines.append(
-            f"  設定{key}: {posteriors[key] * 100.0:.2f}% (事前 {priors_norm[key] * 100.0:.2f}%)"
+            f"  設定{key}: {format_one_over(posteriors[key])} (事前 {format_one_over(priors_norm[key])})"
         )
 
-    copy_text = "".join(f"{line}\n" for line in summary_lines).rstrip()
-    escaped_text = html.escape(copy_text)
-    st.markdown(
-        f"""
+    copy_text = "\n".join(summary_lines)
+    copy_json = json.dumps(copy_text, ensure_ascii=False)
+
+    copy_script = """
         <div class="copy-share-container">
-          <textarea id="share-text" style="position: absolute; left: -9999px; top: -9999px;" aria-hidden="true">{escaped_text}</textarea>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('share-text').value).then(() => window.alert('判別結果をコピーしました。')).catch(() => window.alert('コピーに失敗しました。'));">
-            判別結果をコピー
-          </button>
+          <button id="copy-button">判別結果をコピー</button>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        <script>
+          const copyButton = document.getElementById("copy-button");
+          const copyText = __COPY_TEXT__;
+          if (copyButton) {
+            copyButton.addEventListener("click", async () => {
+              try {
+                await navigator.clipboard.writeText(copyText);
+                window.alert("判別結果をコピーしました。");
+              } catch (err) {
+                window.alert("コピーに失敗しました。");
+              }
+            });
+          }
+        </script>
+    """
+    st.markdown(copy_script.replace("__COPY_TEXT__", copy_json), unsafe_allow_html=True)
+
+    with st.expander("コピー内容を確認する", expanded=False):
+        st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
 
     c1, c2 = st.columns(2)
     with c1:
-        st.metric(label="最有力の設定", value=f"設定{top_key}", delta=f"{top_prob:.2f}%")
+        st.metric(label="最有力の設定", value=f"設定{top_key} ({format_one_over(top_prob)})")
         st.metric(
             label="実測小役確率",
-            value=f"{hit_rate:.2f}% ({st.session_state.k}/{st.session_state.n})",
+            value=f"{format_one_over(hit_prob)} ({st.session_state.k}/{st.session_state.n})",
         )
     with c2:
         st.metric(
             label="低設定(1,2) / 高設定(4,5,6)",
-            value=f"{low_prob:.2f}% / {high_prob:.2f}%",
+            value=f"{format_one_over(low_prob)} / {format_one_over(high_prob)}",
         )
-        grp124 = (posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)) * 100.0
-        grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
-        st.metric(label="(1,2,4) / (5,6)", value=f"{grp124:.2f}% / {grp56:.2f}%")
+        st.metric(
+            label="(1,2,4) / (5,6)",
+            value=f"{format_one_over(grp124)} / {format_one_over(grp56)}",
+        )
 
     chart_data = pd.DataFrame(
         {
@@ -275,9 +288,9 @@ if submitted:
         rows.append(
             {
                 "設定": key,
-                "確率(1/x)": round(1.0 / p, 2),
-                "事前(%)": round(priors_norm[key] * 100.0, 2),
-                "事後(%)": round(posteriors[key] * 100.0, 2),
+                "確率(1/x)": f"1/{(1.0 / p):.2f}",
+                "事前(1/x)": format_one_over(priors_norm[key]),
+                "事後(1/x)": format_one_over(posteriors[key]),
             }
         )
     df = pd.DataFrame(rows)
