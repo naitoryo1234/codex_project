@@ -283,10 +283,18 @@ if submitted:
     )
     chart = (
         alt.Chart(chart_data)
-        .mark_bar(size=36, cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+        .mark_bar(size=26, cornerRadiusTopLeft=3, cornerRadiusBottomLeft=3)
         .encode(
-            x=alt.X("設定:N", sort=SETTING_KEYS, axis=alt.Axis(title=None)),
-            y=alt.Y("事後確率(%):Q", axis=alt.Axis(title=None)),
+            y=alt.Y(
+                "設定:N",
+                sort=SETTING_KEYS,
+                axis=alt.Axis(title=None, labelAngle=0),
+            ),
+            x=alt.X(
+                "事後確率(%):Q",
+                axis=alt.Axis(title="事後確率(%)", labelAngle=0),
+                scale=alt.Scale(domainMin=0),
+            ),
             color=alt.condition(
                 alt.datum.設定 == top_key,
                 alt.value("#E74C3C"),
