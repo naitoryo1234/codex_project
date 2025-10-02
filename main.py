@@ -242,6 +242,7 @@ if submitted:
 
 
     expected_top = SETTINGS[top_key]
+    expected_top_percent = format_percent(expected_top)
 
     distance_sigma = (
         abs(hit_prob - expected_top)
