@@ -94,19 +94,19 @@ star_labels = {
 
 GOAL_CONFIG = {
     "456": {
-        "min_sample_warn": 90,
-        "min_sample_good": 170,
+        "min_sample_warn": 120,
+        "min_sample_good": 200,
         "ci_warn": 18.0,
         "ci_good": 11.0,
-        "goal_thresholds": {"high": 70.0, "mid": 60.0, "low": 45.0},
-        "diff_thresholds": {"high": 12.0, "mid": 6.0},
-        "ratio_thresholds": {"high": 1.8, "mid": 1.3},
-        "negative_diff_thresholds": {"mid": -6.0, "high": -12.0},
-        "strong_diff": 14.0,
-        "strong_ratio": 2.0,
+        "goal_thresholds": {"high": 75.0, "mid": 65.0, "low": 48.0},
+        "diff_thresholds": {"high": 15.0, "mid": 7.0},
+        "negative_diff_thresholds": {"mid": -5.0, "high": -10.0},
+        "ratio_thresholds": {"high": 2.0, "mid": 1.5},
+        "strong_diff": 16.0,
+        "strong_ratio": 2.2,
         "diff_close": 6.0,
         "comments": {
-            "insufficient": "サンプルが少なく、456の判別はまだ揺らぎが大きい状況です。まずはデータを集めましょう。",
+            "insufficient": "サンプルが少なく、456の判別にはまだ揺らぎが大きい状況です。まずはデータを集めましょう。",
             "very_low": "現状は低設定寄りのデータで456狙いは厳しい展開です。",
             "low": "456狙いにはまだ裏付けが不足しています。慎重に様子を見ましょう。",
             "mid": "456の芽はありますが、追加サンプルで傾向を再確認したいラインです。",
@@ -115,16 +115,16 @@ GOAL_CONFIG = {
         },
     },
     "56": {
-        "min_sample_warn": 130,
+        "min_sample_warn": 160,
         "min_sample_good": 240,
         "ci_warn": 12.0,
-        "ci_good": 7.5,
-        "goal_thresholds": {"high": 58.0, "mid": 50.0, "low": 38.0},
-        "diff_thresholds": {"high": 10.0, "mid": 5.0},
-        "ratio_thresholds": {"high": 1.7, "mid": 1.2},
+        "ci_good": 7.0,
+        "goal_thresholds": {"high": 58.0, "mid": 50.0, "low": 35.0},
+        "diff_thresholds": {"high": 8.0, "mid": 4.0},
         "negative_diff_thresholds": {"mid": -4.0, "high": -8.0},
-        "strong_diff": 12.0,
-        "strong_ratio": 1.8,
+        "ratio_thresholds": {"high": 1.8, "mid": 1.3},
+        "strong_diff": 10.0,
+        "strong_ratio": 1.7,
         "diff_close": 4.5,
         "comments": {
             "insufficient": "サンプルが少なく、設定5・6の判別にはまだ裏付けが足りません。追加で回転数を確保しましょう。",
@@ -138,55 +138,36 @@ GOAL_CONFIG = {
 }
 
 thresholds_456 = [
-    (5, {"min_n": 280, "min_goal": 0.78, "min_diff": 0.35, "min_ratio": 4.0}),
-    (4, {"min_n": 200, "min_goal": 0.68, "min_diff": 0.25, "min_ratio": 3.0}),
-    (3, {"min_n": 130, "min_goal": 0.55, "min_diff": 0.15, "min_ratio": 2.1}),
-    (2, {"min_n": 90, "min_goal": 0.45, "min_diff": 0.05, "min_ratio": 1.2}),
+    (5, {"min_n": 260, "min_goal": 0.80, "min_diff": 0.28, "min_ratio": 2.6}),
+    (4, {"min_n": 200, "min_goal": 0.70, "min_diff": 0.20, "min_ratio": 2.1}),
+    (3, {"min_n": 160, "min_goal": 0.60, "min_diff": 0.12, "min_ratio": 1.6}),
+    (2, {"min_n": 120, "min_goal": 0.52, "min_diff": 0.05, "min_ratio": 1.2}),
 ]
 
 thresholds_56 = [
-    (5, {"min_n": 260, "min_goal": 0.55, "min_diff": 0.22, "min_ratio": 3.0}),
-    (4, {"min_n": 180, "min_goal": 0.45, "min_diff": 0.16, "min_ratio": 2.4}),
-    (3, {"min_n": 120, "min_goal": 0.35, "min_diff": 0.08, "min_ratio": 1.6}),
-    (2, {"min_n": 80, "min_goal": 0.28, "min_diff": 0.03, "min_ratio": 1.1}),
+    (5, {"min_n": 260, "min_goal": 0.58, "min_diff": 0.15, "min_ratio": 2.0}),
+    (4, {"min_n": 210, "min_goal": 0.50, "min_diff": 0.10, "min_ratio": 1.6}),
+    (3, {"min_n": 170, "min_goal": 0.42, "min_diff": 0.06, "min_ratio": 1.3}),
+    (2, {"min_n": 140, "min_goal": 0.35, "min_diff": 0.02, "min_ratio": 1.1}),
 ]
-
-
-# ページ設定 (wide レイアウト + モバイル最適化)
 
 
 
 def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds, ci_range_pct: float):
     config = GOAL_CONFIG[goal_code]
     sample_n = st.session_state.n
-    ratio = goal_prob / alt_prob if alt_prob > 0 else float("inf")
+
+    alt_prob_safe = max(alt_prob, 1e-9)
+    ratio = goal_prob / alt_prob_safe if alt_prob_safe > 0 else float("inf")
     diff = goal_prob - alt_prob
     diff_pct = diff * 100.0
     goal_prob_pct = goal_prob * 100.0
 
-    star = 1
-    thresholds_dict = {star_key: cond for star_key, cond in thresholds}
-    for star_candidate, cond in thresholds:
-        cond_ratio = cond.get("min_ratio", 0.0)
-        cond_diff = cond.get("min_diff", 0.0)
-        cond_goal = cond.get("min_goal", 0.0)
-        cond_n = cond.get("min_n", 0)
-        if (
-            sample_n >= cond_n
-            and goal_prob >= cond_goal
-            and diff >= cond_diff
-            and ratio >= cond_ratio
-        ):
-            star = star_candidate
-            break
-
-    stars_text = "★" * star + "☆" * (5 - star)
-    ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
-
     insufficient_sample = (
         sample_n < config["min_sample_warn"]
-        or ci_range_pct > config["ci_warn"]
+        or ci_range_pct >= config["ci_warn"]
     )
+
     if (
         diff_pct >= config["strong_diff"]
         and ratio >= config["strong_ratio"]
@@ -196,29 +177,33 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
 
     score = 0
 
-    if goal_prob_pct >= config["goal_thresholds"]["high"]:
+    thresholds_goal = config["goal_thresholds"]
+    if goal_prob_pct >= thresholds_goal["high"]:
         score += 2
-    elif goal_prob_pct >= config["goal_thresholds"]["mid"]:
+    elif goal_prob_pct >= thresholds_goal["mid"]:
         score += 1
-    elif goal_prob_pct <= config["goal_thresholds"]["low"]:
+    elif goal_prob_pct <= thresholds_goal["low"]:
         score -= 1
 
-    if diff_pct >= config["diff_thresholds"]["high"]:
+    diff_thresholds = config["diff_thresholds"]
+    neg_thresholds = config["negative_diff_thresholds"]
+    if diff_pct >= diff_thresholds["high"]:
         score += 2
-    elif diff_pct >= config["diff_thresholds"]["mid"]:
+    elif diff_pct >= diff_thresholds["mid"]:
         score += 1
-    elif diff_pct <= config["negative_diff_thresholds"]["high"]:
+    elif diff_pct <= neg_thresholds["high"]:
         score -= 2
-    elif diff_pct <= config["negative_diff_thresholds"]["mid"]:
+    elif diff_pct <= neg_thresholds["mid"]:
         score -= 1
 
-    if ratio >= config["ratio_thresholds"]["high"]:
+    ratio_thresholds = config["ratio_thresholds"]
+    if ratio >= ratio_thresholds["high"]:
         score += 2
-    elif ratio >= config["ratio_thresholds"]["mid"]:
+    elif ratio >= ratio_thresholds["mid"]:
         score += 1
-    elif ratio <= 1.0 / config["ratio_thresholds"]["high"]:
+    elif ratio <= 1.0 / ratio_thresholds["high"]:
         score -= 2
-    elif ratio <= 1.0 / config["ratio_thresholds"]["mid"]:
+    elif ratio <= 1.0 / ratio_thresholds["mid"]:
         score -= 1
 
     if ci_range_pct <= config["ci_good"]:
@@ -232,28 +217,30 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
         score -= 1
 
     if insufficient_sample:
-        star = 2 if goal_prob_pct >= config["goal_thresholds"]["mid"] else 1
+        star = 2 if goal_prob_pct >= thresholds_goal["mid"] else 1
     else:
-        if diff_pct < config["diff_thresholds"]["mid"]:
+        if diff_pct < diff_thresholds["mid"]:
             score -= 1
-        if score >= 5:
+
+        if score >= 6:
             star = 5
-        elif score >= 3:
+        elif score >= 4:
             star = 4
-        elif score >= 1:
+        elif score >= 2:
             star = 3
-        elif score >= -1:
+        elif score >= 0:
             star = 2
         else:
             star = 1
 
     stars_text = "★" * star + "☆" * (5 - star)
+    ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
 
     comments = config["comments"]
     if insufficient_sample:
         comment = comments["insufficient"]
     else:
-        if star == 5:
+        if star >= 5:
             comment = comments["very_high"]
         elif star == 4:
             comment = comments["high"]
@@ -265,7 +252,7 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
             comment = comments["very_low"]
 
         diff_close = config["diff_close"]
-        if diff_pct >= config["diff_thresholds"]["high"] and ratio >= config["ratio_thresholds"]["high"]:
+        if diff_pct >= diff_thresholds["high"] and ratio >= ratio_thresholds["high"]:
             comment += " 優位性ははっきりしています。"
         elif -diff_close <= diff_pct <= diff_close:
             comment += " 今は競り合いなので追加のデータで見極めましょう。"
@@ -277,9 +264,9 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
     thresholds_dict = {star_key: cond for star_key, cond in thresholds}
     for higher_star in sorted(thresholds_dict.keys()):
         if higher_star > star:
-            min_n = thresholds_dict[higher_star].get("min_n", sample_n)
-            if sample_n < min_n:
-                needed = min_n - sample_n
+            min_n_required = thresholds_dict[higher_star].get("min_n", sample_n)
+            if sample_n < min_n_required:
+                needed = min_n_required - sample_n
                 comment += f" 目安としてあと約{needed}G回すと★{higher_star}を狙えます。"
             break
 
@@ -295,6 +282,8 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
         "insufficient": insufficient_sample,
     }
 
+
+
 st.set_page_config(
     page_title="設定推定ツール",
     page_icon="🎰",
@@ -302,7 +291,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# モバイル向けの余白・フォント調整、安全領域を確保
 st.markdown(
     """
     <style>
@@ -310,11 +298,6 @@ st.markdown(
       h1 { font-size: 1.6rem !important; }
       label, .stMarkdown p { font-size: 0.95rem; }
       .stNumberInput input { font-size: 1rem; }
-      .micro-row { margin-top: 0.25rem; }
-      .micro-row [data-testid="stHorizontalBlock"] { display: flex !important; flex-wrap: nowrap !important; }
-      .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
-      .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
-      .micro-row .stButton > button { padding: 0.14rem 0.46rem; font-size: 0.82rem; min-width: 60px; }
       .copy-share-container { margin: 0.6rem 0 0.8rem; }
       .copy-share-container button { padding: 0.5rem 0.9rem; background-color: #2F80ED; border: none; border-radius: 0.5rem; color: #ffffff; font-size: 0.95rem; cursor: pointer; }
       .copy-share-container button:hover { background-color: #1C5FC4; }
@@ -324,34 +307,28 @@ st.markdown(
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
         label, .stMarkdown p { font-size: 0.9rem; }
-        .micro-row .stButton > button { min-width: 56px; }
-        div[data-testid="stMetricValue"] { font-size: 1rem !important; }
+        .copy-share-container button { min-width: 56px; }
       }
     </style>
-    """
-,
+    """,
     unsafe_allow_html=True,
 )
 
-# iPhone Safari での横並びを強制
 st.markdown(
     """
     <style>
     @media (max-width: 640px) {
       div[data-testid="stHorizontalBlock"] { flex-direction: row !important; flex-wrap: nowrap !important; }
       div[data-testid="stHorizontalBlock"] > div { width: 50% !important; min-width: 0 !important; flex: 0 0 50% !important; }
-      div[data-testid="column"] { width: 50% !important; min-width: 0 !important; flex: 0 0 50% !important; }
       div[data-testid="stNumberInput"] { min-width: 0 !important; }
     }
     </style>
-    """
-,
+    """,
     unsafe_allow_html=True,
 )
 
 st.title("モンキーターンV判別ツール")
 
-# セッション保存用の初期値
 if "n" not in st.session_state:
     st.session_state.n = 1000
 if "k" not in st.session_state:
@@ -360,43 +337,45 @@ if "k" not in st.session_state:
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
 
-    # N と k を横並びで配置。インクリメントボタンは小さめに配置。
     col_n, col_k = st.columns(2, gap="small")
     with col_n:
-        n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
-        st.markdown('<div class="micro-row">', unsafe_allow_html=True)
-        n_col1, n_col2 = st.columns(2)
-        with n_col1:
-            if st.form_submit_button("N -50", key="n_minus"):
-                st.session_state.n = max(0, int(n) - 50)
-                st.rerun()
-        with n_col2:
-            if st.form_submit_button("N +50", key="n_plus"):
-                st.session_state.n = int(n) + 50
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+        n_value = st.number_input(
+            "総回転数 N",
+            min_value=0,
+            value=int(st.session_state.n),
+            step=10,
+            key="n_input",
+        )
+        minus_n = st.form_submit_button("N -50", key="n_minus")
+        if minus_n:
+            st.session_state.n = max(0, int(n_value) - 50)
+            st.experimental_rerun()
+        plus_n = st.form_submit_button("N +50", key="n_plus")
+        if plus_n:
+            st.session_state.n = int(n_value) + 50
+            st.experimental_rerun()
 
     with col_k:
-        k = st.number_input("小役回数 k", min_value=0, value=int(st.session_state.k), step=1, key="k_input")
-        st.markdown('<div class="micro-row">', unsafe_allow_html=True)
-        k_col1, k_col2 = st.columns(2)
-        with k_col1:
-            if st.form_submit_button("k -10", key="k_minus"):
-                st.session_state.k = max(0, int(k) - 10)
-                st.rerun()
-        with k_col2:
-            if st.form_submit_button("k +10", key="k_plus"):
-                st.session_state.k = int(k) + 10
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+        k_value = st.number_input(
+            "小役回数 k",
+            min_value=0,
+            value=int(st.session_state.k),
+            step=1,
+            key="k_input",
+        )
+        minus_k = st.form_submit_button("k -10", key="k_minus")
+        if minus_k:
+            st.session_state.k = max(0, int(k_value) - 10)
+            st.experimental_rerun()
+        plus_k = st.form_submit_button("k +10", key="k_plus")
+        if plus_k:
+            st.session_state.k = int(k_value) + 10
+            st.experimental_rerun()
 
-    # 事前確率はフォーム送信時に自動正規化
     st.markdown("事前確率は合計値に応じて自動で正規化されます。")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
 
-    default_uniform = 100.0 / len(SETTING_KEYS)
-    prior_inputs: Dict[str, float] = {k: default_uniform for k in SETTING_KEYS}
-
+    prior_inputs: Dict[str, float] = {key: 100.0 / len(SETTING_KEYS) for key in SETTING_KEYS}
     if prior_mode == "カスタム":
         with st.expander("事前確率を細かく入力する", expanded=True):
             cols = st.columns(len(SETTING_KEYS))
@@ -405,7 +384,7 @@ with st.form("inputs", clear_on_submit=False):
                     prior_inputs[key] = st.number_input(
                         f"設定{key}",
                         min_value=0.0,
-                        value=float(f"{default_uniform:.1f}"),
+                        value=prior_inputs[key],
                         step=0.1,
                         key=f"prior_{key}",
                     )
@@ -413,14 +392,14 @@ with st.form("inputs", clear_on_submit=False):
     submitted = st.form_submit_button("計算する", use_container_width=True)
 
 if submitted:
-    st.session_state.n = int(n)
-    st.session_state.k = int(k)
+    st.session_state.n = int(n_value)
+    st.session_state.k = int(k_value)
 
     if st.session_state.k > st.session_state.n:
         st.error("入力エラー: 0 <= 小役回数 <= 回転数 を満たしてください。")
         st.stop()
 
-    priors = prior_inputs
+    priors = {key: prior_inputs[key] for key in SETTING_KEYS}
     posteriors = compute_posteriors(int(st.session_state.n), int(st.session_state.k), priors)
     priors_norm = normalize(priors)
 
@@ -449,19 +428,16 @@ if submitted:
     ci_range_pct = (ci_high - ci_low) * 100.0
     ci_range_text = f"{ci_low * 100:.2f}% - {ci_high * 100:.2f}%"
 
-
-
-
-
     expected_top = SETTINGS[top_key]
-    expected_top_percent = format_percent(expected_top)
     if st.session_state.n > 0 and 0.0 < expected_top < 1.0:
         variance_top = expected_top * (1.0 - expected_top) / st.session_state.n
-        distance_sigma = abs(hit_prob - expected_top) / math.sqrt(variance_top) if variance_top > 0 else 0.0
+        distance_sigma = (
+            abs(hit_prob - expected_top) / math.sqrt(variance_top)
+            if variance_top > 0 else 0.0
+        )
     else:
         distance_sigma = 0.0
-
-
+    expected_top_percent = format_percent(expected_top)
 
     rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456, ci_range_pct)
     rating_56 = evaluate_goal("56", grp56, grp124, thresholds_56, ci_range_pct)
@@ -499,8 +475,8 @@ if submitted:
     button_id = f"copy-btn-{uuid.uuid4().hex}"
 
     copy_html = """
-        <div class=\"copy-share-container\">
-          <button id=\"__BUTTON_ID__\">判別結果をコピー</button>
+        <div class="copy-share-container">
+          <button id="__BUTTON_ID__">判別結果をコピー</button>
         </div>
         <script>
           const btn = document.getElementById('__BUTTON_ID__');
@@ -509,7 +485,7 @@ if submitted:
             btn.addEventListener('click', async () => {
               try {
                 await navigator.clipboard.writeText(textToCopy);
-                window.alert('判別結果をコピー\u3057\u307e\u3057\u305f\u3002');
+                window.alert('判別結果をコピーしました。');
               } catch (error) {
                 window.alert('コピーに失敗しました。');
               }
