@@ -455,6 +455,12 @@ if submitted:
 
     expected_top = SETTINGS[top_key]
     expected_top_percent = format_percent(expected_top)
+    if st.session_state.n > 0 and 0.0 < expected_top < 1.0:
+        variance_top = expected_top * (1.0 - expected_top) / st.session_state.n
+        distance_sigma = abs(hit_prob - expected_top) / math.sqrt(variance_top) if variance_top > 0 else 0.0
+    else:
+        distance_sigma = 0.0
+
 
 
     rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456, ci_range_pct)
