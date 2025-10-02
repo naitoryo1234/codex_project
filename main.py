@@ -79,7 +79,7 @@ st.markdown(
       .micro-row [data-testid="column"] { width: 50% !important; padding-right: 0.25rem; }
       .micro-row [data-testid="column"]:last-child { padding-right: 0; padding-left: 0.25rem; }
       .micro-row .stButton > button { padding: 0.14rem 0.46rem; font-size: 0.82rem; min-width: 60px; }
-      .copy-share-container { margin-top: 1.5rem; }
+      .copy-share-container { margin: 1rem 0 1.5rem; }
       .copy-share-container button { padding: 0.5rem 0.9rem; background-color: #2F80ED; border: none; border-radius: 0.5rem; color: #ffffff; font-size: 0.95rem; cursor: pointer; }
       .copy-share-container button:hover { background-color: #1C5FC4; }
       div[data-testid="stMetricValue"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
@@ -184,26 +184,74 @@ if submitted:
     posteriors = compute_posteriors(int(st.session_state.n), int(st.session_state.k), priors)
     priors_norm = normalize(priors)
 
-    # 最も確率が高い設定を強調
+    hit_rate = (st.session_state.k / st.session_state.n * 100.0) if st.session_state.n > 0 else 0.0
+
+    summary_lines = [
+        "モンキーターンV 判別結果",
+        f"総回転数: {st.session_state.n}G",
+        f"小役回数: {st.session_state.k}回",
+        f"実測小役確率: {hit_rate:.2f}% ({st.session_state.k}/{st.session_state.n})",
+    ]
+
     top_key = max(posteriors, key=posteriors.get)
     top_prob = posteriors[top_key] * 100.0
+    summary_lines.extend(
+        [
+            f"最有力設定: 設定{top_key} ({top_prob:.2f}%)",
+        ]
+    )
+
+    low_prob = sum(posteriors.get(key, 0.0) for key in ["1", "2"]) * 100.0
+    high_prob = sum(posteriors.get(key, 0.0) for key in ["4", "5", "6"]) * 100.0
+    summary_lines.extend(
+        [
+            f"低設定(1・2): {low_prob:.2f}%",
+            f"高設定(4・5・6): {high_prob:.2f}%",
+            "各設定の事後確率:",
+        ]
+    )
+
+    for key in SETTING_KEYS:
+        summary_lines.append(
+            f"  設定{key}: {posteriors[key] * 100.0:.2f}% (事前 {priors_norm[key] * 100.0:.2f}%)"
+        )
+
+    copy_text = "".join(f"{line}\n" for line in summary_lines).rstrip()
+    escaped_text = html.escape(copy_text)
+    st.markdown(
+        f"""
+        <div class="copy-share-container">
+          <textarea id="share-text" style="position: absolute; left: -9999px; top: -9999px;" aria-hidden="true">{escaped_text}</textarea>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('share-text').value).then(() => window.alert('判別結果をコピーしました。')).catch(() => window.alert('コピーに失敗しました。'));">
+            判別結果をコピー
+          </button>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     c1, c2 = st.columns(2)
     with c1:
         st.metric(label="最有力の設定", value=f"設定{top_key}", delta=f"{top_prob:.2f}%")
+        st.metric(
+            label="実測小役確率",
+            value=f"{hit_rate:.2f}% ({st.session_state.k}/{st.session_state.n})",
+        )
     with c2:
-        low_prob = sum(posteriors.get(key, 0.0) for key in ["1", "2"]) * 100.0
-        high_prob = sum(posteriors.get(key, 0.0) for key in ["4", "5", "6"]) * 100.0
-        st.metric(label="低設定(1,2) / 高設定(4,5,6)", value=f"{low_prob:.2f}% / {high_prob:.2f}%")
+        st.metric(
+            label="低設定(1,2) / 高設定(4,5,6)",
+            value=f"{low_prob:.2f}% / {high_prob:.2f}%",
+        )
         grp124 = (posteriors.get("1", 0.0) + posteriors.get("2", 0.0) + posteriors.get("4", 0.0)) * 100.0
         grp56 = (posteriors.get("5", 0.0) + posteriors.get("6", 0.0)) * 100.0
         st.metric(label="(1,2,4) / (5,6)", value=f"{grp124:.2f}% / {grp56:.2f}%")
 
-    # 棒グラフ (最有力の設定を赤でハイライト)
-    chart_data = pd.DataFrame({
-        "設定": SETTING_KEYS,
-        "事後確率(%)": [posteriors[key] * 100.0 for key in SETTING_KEYS],
-    })
+    chart_data = pd.DataFrame(
+        {
+            "設定": SETTING_KEYS,
+            "事後確率(%)": [posteriors[key] * 100.0 for key in SETTING_KEYS],
+        }
+    )
     chart = (
         alt.Chart(chart_data)
         .mark_bar(size=36, cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
@@ -212,7 +260,7 @@ if submitted:
             y=alt.Y("事後確率(%):Q", axis=alt.Axis(title=None)),
             color=alt.condition(
                 alt.datum.設定 == top_key,
-                alt.value("#E74C3C"),  # 最有力の設定を赤で表示
+                alt.value("#E74C3C"),
                 alt.value("#2F80ED"),
             ),
             tooltip=[alt.Tooltip("設定:N"), alt.Tooltip("事後確率(%):Q", format=".2f")],
@@ -221,7 +269,6 @@ if submitted:
     )
     st.altair_chart(chart, use_container_width=True)
 
-    # 表形式で各設定の事前・事後を表示
     rows = []
     for key in SETTING_KEYS:
         p = SETTINGS[key]
@@ -235,36 +282,5 @@ if submitted:
         )
     df = pd.DataFrame(rows)
     st.dataframe(df, use_container_width=True, hide_index=True)
-
-    # 共有用テキストとコピー用ボタン
-    summary_lines = [
-        "モンキーターンV 判別結果",
-        f"総回転数: {st.session_state.n}G",
-        f"小役回数: {st.session_state.k}回",
-        f"最有力設定: 設定{top_key} ({top_prob:.2f}%)",
-        f"低設定(1・2): {low_prob:.2f}%",
-        f"高設定(4・5・6): {high_prob:.2f}%",
-        "各設定の事後確率:",
-    ]
-    for key in SETTING_KEYS:
-        summary_lines.append(
-            f"  設定{key}: {posteriors[key] * 100.0:.2f}% (事前 {priors_norm[key] * 100.0:.2f}%)"
-        )
-    copy_text = "\n".join(summary_lines)
-
-    st.text_area("共有用テキスト", value=copy_text, height=220)
-
-    escaped_text = html.escape(copy_text)
-    st.markdown(
-        f"""
-        <div class="copy-share-container">
-          <textarea id="share-text" style="position: absolute; left: -9999px; top: -9999px;" aria-hidden="true">{escaped_text}</textarea>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('share-text').value).then(() => window.alert('判別結果をコピーしました。')).catch(() => window.alert('コピーに失敗しました。'));">
-            判別結果をコピー
-          </button>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 else:
     st.info("フォームに入力し「計算する」を押してください。事前確率は未設定でも自動で均等化されます。")
