@@ -1,10 +1,12 @@
 import json
 import math
+import uuid
 from typing import Dict, List
 
 import altair as alt
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 # 設定ごとの5枚役当選確率
 SETTINGS: Dict[str, float] = {
@@ -69,6 +71,11 @@ def format_one_over(prob: float) -> str:
     return f"1/{inv:.2f}"
 
 
+def format_percent(prob: float) -> str:
+    return f"{prob * 100.0:.2f}%"
+
+
+# ページ設定 (wide レイアウト + モバイル最適化)
 st.set_page_config(
     page_title="設定推定ツール",
     page_icon="🎰",
@@ -76,6 +83,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# モバイル向けの余白・フォント調整、安全領域を確保
 st.markdown(
     """
     <style>
@@ -99,10 +107,12 @@ st.markdown(
         div[data-testid="stMetricValue"] { font-size: 1rem !important; }
       }
     </style>
-    """,
+    """
+,
     unsafe_allow_html=True,
 )
 
+# iPhone Safari での横並びを強制
 st.markdown(
     """
     <style>
@@ -113,12 +123,14 @@ st.markdown(
       div[data-testid="stNumberInput"] { min-width: 0 !important; }
     }
     </style>
-    """,
+    """
+,
     unsafe_allow_html=True,
 )
 
 st.title("モンキーターンV判別ツール")
 
+# セッション保存用の初期値
 if "n" not in st.session_state:
     st.session_state.n = 1000
 if "k" not in st.session_state:
@@ -127,6 +139,7 @@ if "k" not in st.session_state:
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
 
+    # N と k を横並びで配置。インクリメントボタンは小さめに配置。
     col_n, col_k = st.columns(2, gap="small")
     with col_n:
         n = st.number_input("総回転数 N", min_value=0, value=int(st.session_state.n), step=10, key="n_input")
@@ -156,6 +169,7 @@ with st.form("inputs", clear_on_submit=False):
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # 事前確率はフォーム送信時に自動正規化
     st.markdown("事前確率は合計値に応じて自動で正規化されます。")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
 
@@ -190,7 +204,6 @@ if submitted:
     priors_norm = normalize(priors)
 
     hit_prob = (st.session_state.k / st.session_state.n) if st.session_state.n > 0 else 0.0
-
     top_key = max(posteriors, key=posteriors.get)
     top_prob = posteriors[top_key]
 
@@ -204,47 +217,50 @@ if submitted:
         f"総回転数: {st.session_state.n}G",
         f"小役回数: {st.session_state.k}回",
         f"実測小役確率: {format_one_over(hit_prob)} ({st.session_state.k}/{st.session_state.n})",
-        f"最有力設定: 設定{top_key} ({format_one_over(top_prob)})",
-        f"低設定(1・2): {format_one_over(low_prob)}",
-        f"高設定(4・5・6): {format_one_over(high_prob)}",
+        f"最有力設定: 設定{top_key} ({format_percent(top_prob)})",
+        f"低設定(1・2): {format_percent(low_prob)}",
+        f"高設定(4・5・6): {format_percent(high_prob)}",
         "各設定の事後確率:",
     ]
 
     for key in SETTING_KEYS:
         summary_lines.append(
-            f"  設定{key}: {format_one_over(posteriors[key])} (事前 {format_one_over(priors_norm[key])})"
+            f"  設定{key}: {format_percent(posteriors[key])} (事前 {format_percent(priors_norm[key])})"
         )
 
     copy_text = "\n".join(summary_lines)
     copy_json = json.dumps(copy_text, ensure_ascii=False)
+    button_id = f"copy-btn-{uuid.uuid4().hex}"
 
-    copy_script = """
-        <div class="copy-share-container">
-          <button id="copy-button">判別結果をコピー</button>
+    copy_html = """
+        <div class=\"copy-share-container\">
+          <button id=\"__BUTTON_ID__\">判別結果をコピー</button>
         </div>
         <script>
-          const copyButton = document.getElementById("copy-button");
-          const copyText = __COPY_TEXT__;
-          if (copyButton) {
-            copyButton.addEventListener("click", async () => {
+          const btn = document.getElementById('__BUTTON_ID__');
+          const textToCopy = __COPY_TEXT__;
+          if (btn) {
+            btn.addEventListener('click', async () => {
               try {
-                await navigator.clipboard.writeText(copyText);
-                window.alert("判別結果をコピーしました。");
-              } catch (err) {
-                window.alert("コピーに失敗しました。");
+                await navigator.clipboard.writeText(textToCopy);
+                window.alert('判別結果をコピー\u3057\u307e\u3057\u305f\u3002');
+              } catch (error) {
+                window.alert('コピーに失敗しました。');
               }
             });
           }
         </script>
     """
-    st.markdown(copy_script.replace("__COPY_TEXT__", copy_json), unsafe_allow_html=True)
+
+    copy_html = copy_html.replace("__BUTTON_ID__", button_id).replace("__COPY_TEXT__", copy_json)
+    components.html(copy_html, height=120, scrolling=False)
 
     with st.expander("コピー内容を確認する", expanded=False):
         st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
 
     c1, c2 = st.columns(2)
     with c1:
-        st.metric(label="最有力の設定", value=f"設定{top_key} ({format_one_over(top_prob)})")
+        st.metric(label="最有力の設定", value=f"設定{top_key} ({format_percent(top_prob)})")
         st.metric(
             label="実測小役確率",
             value=f"{format_one_over(hit_prob)} ({st.session_state.k}/{st.session_state.n})",
@@ -252,11 +268,11 @@ if submitted:
     with c2:
         st.metric(
             label="低設定(1,2) / 高設定(4,5,6)",
-            value=f"{format_one_over(low_prob)} / {format_one_over(high_prob)}",
+            value=f"{format_percent(low_prob)} / {format_percent(high_prob)}",
         )
         st.metric(
             label="(1,2,4) / (5,6)",
-            value=f"{format_one_over(grp124)} / {format_one_over(grp56)}",
+            value=f"{format_percent(grp124)} / {format_percent(grp56)}",
         )
 
     chart_data = pd.DataFrame(
@@ -289,8 +305,8 @@ if submitted:
             {
                 "設定": key,
                 "確率(1/x)": f"1/{(1.0 / p):.2f}",
-                "事前(1/x)": format_one_over(priors_norm[key]),
-                "事後(1/x)": format_one_over(posteriors[key]),
+                "事前(%)": f"{priors_norm[key] * 100.0:.2f}%",
+                "事後(%)": f"{posteriors[key] * 100.0:.2f}%",
             }
         )
     df = pd.DataFrame(rows)
