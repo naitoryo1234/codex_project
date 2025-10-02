@@ -236,6 +236,7 @@ if submitted:
     )
     ci_low = max(0.0, hit_prob - 1.96 * se)
     ci_high = min(1.0, hit_prob + 1.96 * se)
+    ci_range_text = f"{ci_low * 100:.2f}% - {ci_high * 100:.2f}%"
 
 
 
