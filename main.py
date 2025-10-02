@@ -417,6 +417,7 @@ if submitted:
         classes="reliability-caption",
     )
 
+    st.session_state['share_text_display'] = copy_text
     with st.expander("コピー内容を確認する", expanded=False):
         st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
 
