@@ -1,6 +1,7 @@
 import json
 import math
 import uuid
+import html
 from typing import Dict, List
 
 import altair as alt
@@ -75,6 +76,14 @@ def format_percent(prob: float) -> str:
     return f"{prob * 100.0:.2f}%"
 
 
+def render_small_text(text: str, classes: str = "reliability-comment") -> None:
+    escaped = html.escape(text).replace("\n", "<br />")
+    st.markdown(
+        f"<div class='{classes}'>{escaped}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 # ページ設定 (wide レイアウト + モバイル最適化)
 st.set_page_config(
     page_title="設定推定ツール",
@@ -99,6 +108,8 @@ st.markdown(
       .copy-share-container { margin: 0.6rem 0 0.8rem; }
       .copy-share-container button { padding: 0.5rem 0.9rem; background-color: #2F80ED; border: none; border-radius: 0.5rem; color: #ffffff; font-size: 0.95rem; cursor: pointer; }
       .copy-share-container button:hover { background-color: #1C5FC4; }
+      .reliability-caption { font-size: 0.85rem; color: #5f6368; margin-bottom: 0.4rem; }
+      .reliability-comment { font-size: 0.9rem; color: #424242; margin: 0.2rem 0 0.8rem; line-height: 1.45; }
       div[data-testid="stMetricValue"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
       @media (max-width: 420px) {
         .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
@@ -226,111 +237,129 @@ if submitted:
     ci_low = max(0.0, hit_prob - 1.96 * se)
     ci_high = min(1.0, hit_prob + 1.96 * se)
 
+
+
+
     expected_top = SETTINGS[top_key]
 
-distance_sigma = (
-    abs(hit_prob - expected_top)
-    / math.sqrt(expected_top * (1.0 - expected_top) / st.session_state.n)
-    if st.session_state.n > 0
-    else 0.0
-)
+    distance_sigma = (
+        abs(hit_prob - expected_top)
+        / math.sqrt(expected_top * (1.0 - expected_top) / st.session_state.n)
+        if st.session_state.n > 0
+        else 0.0
+    )
 
-star_labels = {
-    5: "かなり安心",
-    4: "やや安心",
-    3: "五分五分",
-    2: "慎重",
-    1: "厳しい",
-}
-
-thresholds_456 = [
-    (5, {"min_n": 280, "min_goal": 0.78, "min_diff": 0.35, "min_ratio": 4.0}),
-    (4, {"min_n": 200, "min_goal": 0.68, "min_diff": 0.25, "min_ratio": 3.0}),
-    (3, {"min_n": 130, "min_goal": 0.55, "min_diff": 0.15, "min_ratio": 2.1}),
-    (2, {"min_n": 90, "min_goal": 0.45, "min_diff": 0.05, "min_ratio": 1.2}),
-]
-thresholds_56 = [
-    (5, {"min_n": 260, "min_goal": 0.55, "min_diff": 0.22, "min_ratio": 3.0}),
-    (4, {"min_n": 180, "min_goal": 0.45, "min_diff": 0.16, "min_ratio": 2.4}),
-    (3, {"min_n": 120, "min_goal": 0.35, "min_diff": 0.08, "min_ratio": 1.6}),
-    (2, {"min_n": 80, "min_goal": 0.28, "min_diff": 0.03, "min_ratio": 1.1}),
-]
-
-def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds):
-    sample_n = st.session_state.n
-    ratio = goal_prob / alt_prob if alt_prob > 0 else float("inf")
-    diff = goal_prob - alt_prob
-    diff_pct = diff * 100.0
-
-    star = 1
-    thresholds_dict = {star_key: cond for star_key, cond in thresholds}
-    for star_candidate, cond in thresholds:
-        cond_ratio = cond.get("min_ratio", 0.0)
-        cond_diff = cond.get("min_diff", 0.0)
-        cond_goal = cond.get("min_goal", 0.0)
-        cond_n = cond.get("min_n", 0)
-        if (
-            sample_n >= cond_n
-            and goal_prob >= cond_goal
-            and diff >= cond_diff
-            and ratio >= cond_ratio
-        ):
-            star = star_candidate
-            break
-
-    stars_text = "★" * star + "☆" * (5 - star)
-    ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
-
-    base_comments = {
-        "456": {
-            5: "456狙いでも安心して粘れるデータです。",
-            4: "456寄りが濃厚です。少し回せば確信が持てそうです。",
-            3: "456の芽はありますが、追加サンプルで傾向を再確認したいラインです。",
-            2: "456狙いにはデータがやや不足しています。慎重に様子を見ましょう。",
-            1: "現状は低設定寄りで、456狙いは厳しい展開です。",
-        },
-        "56": {
-            5: "設定5・6本命で戦える濃さです。勝負どころと言えます。",
-            4: "設定5・6がかなり有力です。追加で押し切るならチャンスです。",
-            3: "設定5・6の芽はありますが設定4との競り合いです。追加サンプルで見極めを。",
-            2: "設定5・6を狙うには裏付けが不足しています。設定4ラインも視野に入れて慎重に。",
-            1: "設定5・6はかなり薄い状況です。無理に56狙いに固執しない方が賢明です。",
-        },
+    star_labels = {
+        5: "かなり安心",
+        4: "やや安心",
+        3: "五分五分",
+        2: "慎重",
+        1: "厳しい",
     }
 
-    comment = base_comments[goal_code][star]
-    comment += f" (差 {diff_pct:.1f}pt / 比 {ratio_text})"
+    thresholds_456 = [
+        (5, {"min_n": 280, "min_goal": 0.78, "min_diff": 0.35, "min_ratio": 4.0}),
+        (4, {"min_n": 200, "min_goal": 0.68, "min_diff": 0.25, "min_ratio": 3.0}),
+        (3, {"min_n": 130, "min_goal": 0.55, "min_diff": 0.15, "min_ratio": 2.1}),
+        (2, {"min_n": 90, "min_goal": 0.45, "min_diff": 0.05, "min_ratio": 1.2}),
+    ]
+    thresholds_56 = [
+        (5, {"min_n": 260, "min_goal": 0.55, "min_diff": 0.22, "min_ratio": 3.0}),
+        (4, {"min_n": 180, "min_goal": 0.45, "min_diff": 0.16, "min_ratio": 2.4}),
+        (3, {"min_n": 120, "min_goal": 0.35, "min_diff": 0.08, "min_ratio": 1.6}),
+        (2, {"min_n": 80, "min_goal": 0.28, "min_diff": 0.03, "min_ratio": 1.1}),
+    ]
 
-    next_needed = 0
-    for higher_star in sorted(thresholds_dict.keys()):
-        if higher_star > star:
-            min_n = thresholds_dict[higher_star].get("min_n", sample_n)
-            if sample_n < min_n:
-                next_needed = min_n - sample_n
-                comment += f" 目安としてあと約{next_needed}G回すと★{higher_star}を狙えます。"
-            break
+    def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds):
+        sample_n = st.session_state.n
+        ratio = goal_prob / alt_prob if alt_prob > 0 else float("inf")
+        diff = goal_prob - alt_prob
+        diff_pct = diff * 100.0
 
-    return {
-        "stars": star,
-        "stars_text": stars_text,
-        "label": star_labels[star],
-        "comment": comment,
-        "diff_pct": diff_pct,
-        "ratio_text": ratio_text,
-        "goal_prob": goal_prob,
-        "alt_prob": alt_prob,
-    }
+        star = 1
+        thresholds_dict = {star_key: cond for star_key, cond in thresholds}
+        for star_candidate, cond in thresholds:
+            cond_ratio = cond.get("min_ratio", 0.0)
+            cond_diff = cond.get("min_diff", 0.0)
+            cond_goal = cond.get("min_goal", 0.0)
+            cond_n = cond.get("min_n", 0)
+            if (
+                sample_n >= cond_n
+                and goal_prob >= cond_goal
+                and diff >= cond_diff
+                and ratio >= cond_ratio
+            ):
+                star = star_candidate
+                break
 
-rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456)
-rating_56 = evaluate_goal("56", grp56, grp124, thresholds_56)
+        stars_text = "★" * star + "☆" * (5 - star)
+        ratio_text = "∞" if math.isinf(ratio) else f"{ratio:.1f}x"
 
-if rating_456["stars"] >= 4 and rating_56["stars"] <= 2:
-    rating_456["comment"] += " 一方で設定5・6まで絞るには、もう少し上振れを待った方が安心です。"
-if rating_56["stars"] >= 4 and rating_456["stars"] <= 3:
-    rating_56["comment"] += " 456視点ではまだ確信し切れませんが、56勝負に切り替える価値があります。"
-elif rating_56["stars"] <= 2 and rating_456["stars"] >= 3:
-    rating_56["comment"] += " 設定4までは射程圏ですが、56単体で見ると追加サンプルが欲しい状況です。"
+        base_comments = {
+            "456": {
+                5: "456狙いでも安心して粘れるデータです。",
+                4: "456寄りが濃厚です。少し回せば確信が持てそうです。",
+                3: "456の芽はありますが、追加サンプルで傾向を再確認したいラインです。",
+                2: "456狙いにはデータがやや不足しています。慎重に様子を見ましょう。",
+                1: "現状は低設定寄りで、456狙いは厳しい展開です。",
+            },
+            "56": {
+                5: "設定5・6本命で戦える濃さです。勝負どころと言えます。",
+                4: "設定5・6がかなり有力です。追加で押し切るならチャンスです。",
+                3: "設定5・6の芽はありますが設定4との競り合いです。追加サンプルで見極めを。",
+                2: "設定5・6を狙うには裏付けが不足しています。設定4ラインも視野に入れて慎重に。",
+                1: "設定5・6はかなり薄い状況です。無理に56狙いに固執しない方が賢明です。",
+            },
+        }
 
+        comment = base_comments[goal_code][star]
+        comment += f" (差 {diff_pct:.1f}pt / 比 {ratio_text})"
+
+        next_needed = 0
+        for higher_star in sorted(thresholds_dict.keys()):
+            if higher_star > star:
+                min_n = thresholds_dict[higher_star].get("min_n", sample_n)
+                if sample_n < min_n:
+                    next_needed = min_n - sample_n
+                    comment += f" 目安としてあと約{next_needed}G回すと★{higher_star}を狙えます。"
+                break
+
+        return {
+            "stars": star,
+            "stars_text": stars_text,
+            "label": star_labels[star],
+            "comment": comment,
+            "diff_pct": diff_pct,
+            "ratio_text": ratio_text,
+            "goal_prob": goal_prob,
+            "alt_prob": alt_prob,
+        }
+
+    rating_456 = evaluate_goal("456", high_prob, low_prob, thresholds_456)
+    rating_56 = evaluate_goal("56", grp56, grp124, thresholds_56)
+
+    if rating_456["stars"] >= 4 and rating_56["stars"] <= 2:
+        rating_456["comment"] += " 一方で設定5・6まで絞るには、もう少し上振れを待った方が安心です。"
+    if rating_56["stars"] >= 4 and rating_456["stars"] <= 3:
+        rating_56["comment"] += " 456視点ではまだ確信しきれませんが、56勝負に切り替える価値があります。"
+    elif rating_56["stars"] <= 2 and rating_456["stars"] >= 3:
+        rating_56["comment"] += " 設定4までは射程圏ですが、56単体で見ると追加サンプルが欲しい状況です。"
+
+    summary_lines = [
+        "モンキーターンV 判別結果",
+        f"総回転数: {st.session_state.n}G",
+        f"小役回数: {st.session_state.k}回",
+        f"実測小役確率: {format_one_over(hit_prob)} ({st.session_state.k}/{st.session_state.n})",
+        f"最有力設定: 設定{top_key} ({format_percent(top_prob)})",
+        f"低設定(1・2): {format_percent(low_prob)}",
+        f"高設定(4・5・6): {format_percent(high_prob)}",
+        f"456信頼度: {rating_456['stars_text']} ({rating_456['label']})",
+        f"456コメント: {rating_456['comment']}",
+        f"56信頼度: {rating_56['stars_text']} ({rating_56['label']})",
+        f"56コメント: {rating_56['comment']}",
+        f"実測小役率95%CI: {ci_range_text} (n={st.session_state.n})",
+        "各設定の事後確率:",
+    ]
     summary_lines = [
         "モンキーターンV 判別結果",
         f"総回転数: {st.session_state.n}G",
@@ -379,10 +408,11 @@ elif rating_56["stars"] <= 2 and rating_456["stars"] >= 3:
     copy_html = copy_html.replace("__BUTTON_ID__", button_id).replace("__COPY_TEXT__", copy_json)
     components.html(copy_html, height=70, scrolling=False)
 
-    st.caption(
+    render_small_text(
         f"理論値との差: {distance_sigma:.2f}σ（期待 {expected_top_percent}）"
         if st.session_state.n > 0
-        else "理論値との比較には回転数が必要です。"
+        else "理論値との比較には回転数が必要です。",
+        classes="reliability-caption",
     )
 
     with st.expander("コピー内容を確認する", expanded=False):
@@ -405,13 +435,13 @@ elif rating_56["stars"] <= 2 and rating_456["stars"] >= 3:
             value=f"{format_percent(low_prob)} / {format_percent(high_prob)}",
             delta=f"{rating_456['stars_text']} ({rating_456['label']})",
         )
-        st.caption(rating_456["comment"])
+        render_small_text(rating_456["comment"])
         st.metric(
             label="(1,2,4) / (5,6)",
             value=f"{format_percent(grp124)} / {format_percent(grp56)}",
             delta=f"{rating_56['stars_text']} ({rating_56['label']})",
         )
-        st.caption(rating_56["comment"])
+        render_small_text(rating_56["comment"])
 
     chart_data = pd.DataFrame(
         {
