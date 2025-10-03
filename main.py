@@ -409,14 +409,6 @@ with st.form("inputs", clear_on_submit=False):
             step=10,
             key="n_input",
         )
-        minus_n = st.form_submit_button("N -50", key="n_minus")
-        if minus_n:
-            st.session_state.n = max(0, int(n_value) - 50)
-            st.experimental_rerun()
-        plus_n = st.form_submit_button("N +50", key="n_plus")
-        if plus_n:
-            st.session_state.n = int(n_value) + 50
-            st.experimental_rerun()
 
     with col_k:
         k_value = st.number_input(
@@ -426,14 +418,6 @@ with st.form("inputs", clear_on_submit=False):
             step=1,
             key="k_input",
         )
-        minus_k = st.form_submit_button("k -10", key="k_minus")
-        if minus_k:
-            st.session_state.k = max(0, int(k_value) - 10)
-            st.experimental_rerun()
-        plus_k = st.form_submit_button("k +10", key="k_plus")
-        if plus_k:
-            st.session_state.k = int(k_value) + 10
-            st.experimental_rerun()
 
     render_plain_text("事前確率は合計値に応じて自動で正規化されます。", classes="helper-text")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
