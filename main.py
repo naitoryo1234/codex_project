@@ -636,7 +636,7 @@ if submitted:
             )
         )
     setting_cards.append("</div>")
-    st.markdown("
-".join(setting_cards), unsafe_allow_html=True)
+    setting_cards.append("</div>")
+    st.markdown("\n".join(setting_cards), unsafe_allow_html=True)
 else:
     render_plain_text("フォームに入力し『計算する』を押してください。事前確率は未設定でも自動で均等化されます。", classes="info-box")
