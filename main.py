@@ -3,7 +3,6 @@ import math
 import uuid
 import html
 from typing import Dict, List
-from pathlib import Path
 
 import altair as alt
 import pandas as pd
@@ -19,9 +18,6 @@ SETTINGS: Dict[str, float] = {
     "6": 1 / 22.53,
 }
 SETTING_KEYS: List[str] = list(SETTINGS.keys())
-
-SWIPE_COMPONENT_DIR = Path(__file__).parent / 'swipe_counter_component'
-swipe_counter_component = components.declare_component('swipe_counter', path=str(SWIPE_COMPONENT_DIR))
 
 
 def calculate_likelihood(num_spins: int, num_hits: int, p: float) -> float:
@@ -327,7 +323,7 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
 
 
 
-# Safari compatibility: escape "@media" so GFM does not emit unsupported named groups
+# Safari互換のため、@mediaをHTML実体参照に変換しGFMの命名正規表現生成を回避する
 st.set_page_config(
     page_title="設定推定ツール",
     page_icon="🎰",
@@ -400,8 +396,6 @@ if "n" not in st.session_state:
     st.session_state.n = 1000
 if "k" not in st.session_state:
     st.session_state.k = 20
-if "k_counter" not in st.session_state:
-    st.session_state.k_counter = int(st.session_state.k)
 
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
@@ -417,19 +411,13 @@ with st.form("inputs", clear_on_submit=False):
         )
 
     with col_k:
-        st.markdown("#### 小役カウンター")
-        component_payload = swipe_counter_component(
-            value=int(st.session_state.k_counter),
-            label="小役回数",
-            description="上スワイプで+1 / 下スワイプで-1。非対応ブラウザはボタンか直接入力をご利用ください。",
-            storage_key="monkey_counter_v1",
-            key="swipe_counter_ui",
+        k_value = st.number_input(
+            "小役回数 k",
+            min_value=0,
+            value=int(st.session_state.k),
+            step=1,
+            key="k_input",
         )
-        if isinstance(component_payload, dict):
-            maybe_value = component_payload.get("value")
-            if isinstance(maybe_value, (int, float)):
-                st.session_state.k_counter = max(0, int(maybe_value))
-        st.caption("※ スワイプ非対応端末ではボタンや直接入力をご利用ください。")
 
     render_plain_text("事前確率は合計値に応じて自動で正規化されます。", classes="helper-text")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
@@ -452,7 +440,7 @@ with st.form("inputs", clear_on_submit=False):
 
 if submitted:
     st.session_state.n = int(n_value)
-    st.session_state.k = int(st.session_state.k_counter)
+    st.session_state.k = int(k_value)
 
     if st.session_state.k > st.session_state.n:
         st.error("入力エラー: 0 <= 小役回数 <= 回転数 を満たしてください。")

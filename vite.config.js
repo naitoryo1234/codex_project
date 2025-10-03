@@ -1,0 +1,1 @@
+﻿import { defineConfig } from 'vite';\n\nexport default defineConfig({\n  root: '.',\n  build: {\n    outDir: 'build',\n    assetsDir: '.',\n    emptyOutDir: true,\n    rollupOptions: {\n      input: 'index.html',\n    },\n  },\n});\n
