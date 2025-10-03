@@ -618,25 +618,19 @@ if submitted:
     setting_cards = ["<div class='setting-list'>"]
     for key in SETTING_KEYS:
         p = SETTINGS[key]
+        prior_pct = priors_norm[key] * 100.0
+        posterior_pct = posteriors[key] * 100.0
+        prob_inv = 1.0 / p
         setting_cards.append(
-            """
-            <div class='setting-item'>
-              <div class='setting-title'>設定{key}</div>
-              <div class='setting-values'>
-                <span>確率(1/x): {prob_inv:.2f}</span>
-                <span>事前: {prior_pct:.2f}%</span>
-                <span>事後: {posterior_pct:.2f}%</span>
-              </div>
-            </div>
-            """.format(
-                key=key,
-                prob_inv=1.0 / p,
-                prior_pct=priors_norm[key] * 100.0,
-                posterior_pct=posteriors[key] * 100.0,
-            )
+            f"<div class='setting-item'>"
+            f"<div class='setting-title'>設定{key}</div>"
+            f"<div class='setting-values'>"
+            f"<span>確率(1/x): {prob_inv:.2f}</span>"
+            f"<span>事前: {prior_pct:.2f}%</span>"
+            f"<span>事後: {posterior_pct:.2f}%</span>"
+            "</div></div>"
         )
     setting_cards.append("</div>")
-    setting_cards.append("</div>")
-    st.markdown("\n".join(setting_cards), unsafe_allow_html=True)
+    st.markdown("".join(setting_cards), unsafe_allow_html=True)
 else:
     render_plain_text("フォームに入力し『計算する』を押してください。事前確率は未設定でも自動で均等化されます。", classes="info-box")
