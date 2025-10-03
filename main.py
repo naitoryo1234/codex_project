@@ -323,6 +323,7 @@ def evaluate_goal(goal_code: str, goal_prob: float, alt_prob: float, thresholds,
 
 
 
+# Safari互換のため、@mediaをHTML実体参照に変換しGFMの命名正規表現生成を回避する
 st.set_page_config(
     page_title="設定推定ツール",
     page_icon="🎰",
@@ -359,14 +360,14 @@ st.markdown(
       .setting-values { font-size: 0.9rem; color: #24292f; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; gap: 0.2rem; }
       .reliability-caption { font-size: 0.82rem; color: #5f6368; margin-bottom: 0.4rem; }
       .reliability-comment { font-size: 0.88rem; color: #404650; margin: 0.2rem 0 0.7rem; line-height: 1.45; }
-      @media (max-width: 640px) {
+      &#64;media (max-width: 640px) {
         .block-container { padding-left: 0.55rem; padding-right: 0.55rem; }
         .result-card, .pair-card, .setting-item { padding: 0.55rem 0.65rem; }
         .result-value { font-size: 0.98rem; }
         .pair-main { font-size: 0.95rem; }
         h1 { font-size: 1.35rem !important; }
       }
-      @media (max-width: 420px) {
+      &#64;media (max-width: 420px) {
         .block-container { padding-left: 0.45rem; padding-right: 0.45rem; }
         .copy-share-container button { min-width: 54px; font-size: 0.88rem; }
         .plain-text { font-size: 0.85rem; }
@@ -379,7 +380,7 @@ st.markdown(
 st.markdown(
     """
     <style>
-    @media (max-width: 640px) {
+    &#64;media (max-width: 640px) {
       div[data-testid="stHorizontalBlock"] { flex-direction: row !important; flex-wrap: nowrap !important; }
       div[data-testid="stHorizontalBlock"] > div { width: 50% !important; min-width: 0 !important; flex: 0 0 50% !important; }
       div[data-testid="stNumberInput"] { min-width: 0 !important; }
