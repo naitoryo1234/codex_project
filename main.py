@@ -81,7 +81,7 @@ def format_percent(prob: float) -> str:
 def render_plain_text(text: str, classes: str = "plain-text") -> None:
     escaped = html.escape(text).replace("\n", "<br />")
     st.markdown(
-        f"<div class='" + classes + "'>{escaped}</div>",
+        f"<div class='{classes}'>{escaped}</div>",
         unsafe_allow_html=True,
     )
 
