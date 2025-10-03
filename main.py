@@ -76,6 +76,15 @@ def format_percent(prob: float) -> str:
     return f"{prob * 100.0:.2f}%"
 
 
+
+
+def render_plain_text(text: str, classes: str = "plain-text") -> None:
+    escaped = html.escape(text).replace("\n", "<br />")
+    st.markdown(
+        f"<div class='" + classes + "'>{escaped}</div>",
+        unsafe_allow_html=True,
+    )
+
 def render_small_text(text: str, classes: str = "reliability-comment") -> None:
     escaped = html.escape(text).replace("\n", "<br />")
     st.markdown(
@@ -324,20 +333,43 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      .block-container { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-bottom: 2rem; max-width: 980px; }
-      h1 { font-size: 1.6rem !important; }
-      label, .stMarkdown p { font-size: 0.95rem; }
-      .stNumberInput input { font-size: 1rem; }
-      .copy-share-container { margin: 0.6rem 0 0.8rem; }
-      .copy-share-container button { padding: 0.5rem 0.9rem; background-color: #2F80ED; border: none; border-radius: 0.5rem; color: #ffffff; font-size: 0.95rem; cursor: pointer; }
+      .block-container { padding-top: calc(1.1rem + env(safe-area-inset-top)); padding-bottom: 1.6rem; max-width: 960px; }
+      h1 { font-size: 1.45rem !important; margin-bottom: 0.6rem; }
+      label, .stMarkdown p { font-size: 0.9rem; }
+      .stNumberInput input { font-size: 0.95rem; padding: 0.45rem 0.6rem; }
+      .copy-share-container { margin: 0.5rem 0 0.7rem; }
+      .copy-share-container button { padding: 0.45rem 0.85rem; background-color: #2F80ED; border: none; border-radius: 0.55rem; color: #ffffff; font-size: 0.92rem; cursor: pointer; }
       .copy-share-container button:hover { background-color: #1C5FC4; }
-      .reliability-caption { font-size: 0.85rem; color: #5f6368; margin-bottom: 0.4rem; }
-      .reliability-comment { font-size: 0.9rem; color: #424242; margin: 0.2rem 0 0.8rem; line-height: 1.45; }
-      div[data-testid="stMetricValue"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
+      .plain-text { font-size: 0.9rem; color: #303030; margin: 0.15rem 0 0.5rem; line-height: 1.5; }
+      .helper-text { font-size: 0.88rem; color: #4a4a4a; margin-bottom: 0.5rem; }
+      .info-box { background-color: #f1f3f5; border-radius: 0.6rem; padding: 0.85rem 0.95rem; font-size: 0.9rem; color: #2f3035; line-height: 1.45; }
+      .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin: 0.7rem 0 0.8rem; }
+      .result-card { background-color: #ffffff; border: 1px solid #e2e4e8; border-radius: 0.55rem; padding: 0.65rem 0.75rem; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); display: flex; flex-direction: column; gap: 0.3rem; min-height: 86px; }
+      .result-label { font-size: 0.82rem; color: #4a4f57; letter-spacing: 0.01em; }
+      .result-value { font-size: 1.05rem; font-weight: 600; color: #1f2329; font-variant-numeric: tabular-nums; }
+      .result-sub { font-size: 0.9rem; color: #5b6269; }
+      .pair-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.55rem; margin-top: 0.5rem; }
+      .pair-card { background-color: #f8f9fb; border-radius: 0.55rem; padding: 0.65rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+      .pair-label { font-size: 0.82rem; color: #4a4f57; }
+      .pair-main { font-size: 1rem; font-weight: 600; color: #1f2329; font-variant-numeric: tabular-nums; }
+      .pair-delta { font-size: 0.85rem; color: #5f6368; }
+      .setting-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.55rem; margin-top: 0.6rem; }
+      .setting-item { background-color: #ffffff; border: 1px solid #e0e2e6; border-radius: 0.55rem; padding: 0.6rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+      .setting-title { font-size: 0.82rem; color: #57606a; }
+      .setting-values { font-size: 0.9rem; color: #24292f; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; gap: 0.2rem; }
+      .reliability-caption { font-size: 0.82rem; color: #5f6368; margin-bottom: 0.4rem; }
+      .reliability-comment { font-size: 0.88rem; color: #404650; margin: 0.2rem 0 0.7rem; line-height: 1.45; }
+      @media (max-width: 640px) {
+        .block-container { padding-left: 0.55rem; padding-right: 0.55rem; }
+        .result-card, .pair-card, .setting-item { padding: 0.55rem 0.65rem; }
+        .result-value { font-size: 0.98rem; }
+        .pair-main { font-size: 0.95rem; }
+        h1 { font-size: 1.35rem !important; }
+      }
       @media (max-width: 420px) {
-        .block-container { padding-left: 0.6rem; padding-right: 0.6rem; }
-        label, .stMarkdown p { font-size: 0.9rem; }
-        .copy-share-container button { min-width: 56px; }
+        .block-container { padding-left: 0.45rem; padding-right: 0.45rem; }
+        .copy-share-container button { min-width: 54px; font-size: 0.88rem; }
+        .plain-text { font-size: 0.85rem; }
       }
     </style>
     """,
@@ -402,7 +434,7 @@ with st.form("inputs", clear_on_submit=False):
             st.session_state.k = int(k_value) + 10
             st.experimental_rerun()
 
-    st.markdown("事前確率は合計値に応じて自動で正規化されます。")
+    render_plain_text("事前確率は合計値に応じて自動で正規化されます。", classes="helper-text")
     prior_mode = st.radio("事前の設定", ["均等", "カスタム"], horizontal=True, index=0)
 
     prior_inputs: Dict[str, float] = {key: 100.0 / len(SETTING_KEYS) for key in SETTING_KEYS}
@@ -479,6 +511,7 @@ if submitted:
             rating_56["comment"] += " 456視点ではまだ確信しきれませんが、56勝負に切り替える価値があります。"
         elif rating_56["stars"] <= 2 and rating_456["stars"] >= 3:
             rating_56["comment"] += " 設定4までは射程圏ですが、56単体で見ると追加サンプルが欲しい状況です。"
+
     summary_lines = [
         "モンキーターンV 判別結果",
         f"総回転数: {st.session_state.n}G",
@@ -535,76 +568,75 @@ if submitted:
 
     st.session_state['share_text_display'] = copy_text
     with st.expander("コピー内容を確認する", expanded=False):
-        st.text_area("共有用テキスト", value=copy_text, height=220, key="share_text_display")
+        st.text_area("共有用テキスト", value=copy_text, height=180, key="share_text_display")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.metric(
-            label="最有力の設定",
-            value=f"設定{top_key} ({format_percent(top_prob)})",
-        )
-        st.metric(
-            label="実測小役確率",
-            value=f"{format_one_over(hit_prob)} ({st.session_state.k}/{st.session_state.n})",
-            delta=f"95%CI {ci_range_text}",
-        )
-    with c2:
-        st.metric(
-            label="低設定(1,2) / 高設定(4,5,6)",
-            value=f"{format_percent(low_prob)} / {format_percent(high_prob)}",
-            delta=f"{rating_456['stars_text']} ({rating_456['label']})",
-        )
-        render_small_text(rating_456["comment"])
-        st.metric(
-            label="(1,2,4) / (5,6)",
-            value=f"{format_percent(grp124)} / {format_percent(grp56)}",
-            delta=f"{rating_56['stars_text']} ({rating_56['label']})",
-        )
-        render_small_text(rating_56["comment"])
+    result_cards_html = f"""
+    <div class="result-grid">
+      <div class="result-card">
+        <div class="result-label">最有力の設定</div>
+        <div class="result-value">設定{top_key}</div>
+        <div class="result-sub">{format_percent(top_prob)}</div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">実測小役確率</div>
+        <div class="result-value">{format_one_over(hit_prob)}</div>
+        <div class="result-sub">95%CI {ci_range_text}</div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">低設定(1・2) / 高設定(4・5・6)</div>
+        <div class="result-value">{format_percent(low_prob)} / {format_percent(high_prob)}</div>
+        <div class="result-sub">差 {prob_gap * 100:.1f}pt</div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">(1,2,4) / (5,6)</div>
+        <div class="result-value">{format_percent(grp124)} / {format_percent(grp56)}</div>
+        <div class="result-sub">比 {bayes_factor if math.isinf(bayes_factor) else f"{bayes_factor:.1f}x"}</div>
+      </div>
+    </div>
+    """
+    st.markdown(result_cards_html, unsafe_allow_html=True)
 
-    chart_data = pd.DataFrame(
-        {
-            "設定": SETTING_KEYS,
-            "事後確率(%)": [posteriors[key] * 100.0 for key in SETTING_KEYS],
-        }
-    )
-    chart = (
-        alt.Chart(chart_data)
-        .mark_bar(size=26, cornerRadiusTopLeft=3, cornerRadiusBottomLeft=3)
-        .encode(
-            y=alt.Y(
-                "設定:N",
-                sort=SETTING_KEYS,
-                axis=alt.Axis(title=None, labelAngle=0),
-            ),
-            x=alt.X(
-                "事後確率(%):Q",
-                axis=alt.Axis(title="事後確率(%)", labelAngle=0),
-                scale=alt.Scale(domainMin=0),
-            ),
-            color=alt.condition(
-                alt.datum.設定 == top_key,
-                alt.value("#E74C3C"),
-                alt.value("#2F80ED"),
-            ),
-            tooltip=[alt.Tooltip("設定:N"), alt.Tooltip("事後確率(%):Q", format=".2f")],
-        )
-        .properties(height=260)
-    )
-    st.altair_chart(chart, use_container_width=True)
+    reliability_html = f"""
+    <div class="pair-grid">
+      <div class="pair-card">
+        <div class="pair-label">456信頼度</div>
+        <div class="pair-main">{rating_456['stars_text']}</div>
+        <div class="pair-delta">{rating_456['label']}</div>
+      </div>
+      <div class="pair-card">
+        <div class="pair-label">56信頼度</div>
+        <div class="pair-main">{rating_56['stars_text']}</div>
+        <div class="pair-delta">{rating_56['label']}</div>
+      </div>
+    </div>
+    """
+    st.markdown(reliability_html, unsafe_allow_html=True)
 
-    rows = []
+    render_plain_text(f"456コメント: {rating_456['comment']}", classes="reliability-comment")
+    render_plain_text(f"56コメント: {rating_56['comment']}", classes="reliability-comment")
+
+    setting_cards = ["<div class='setting-list'>"]
     for key in SETTING_KEYS:
         p = SETTINGS[key]
-        rows.append(
-            {
-                "設定": key,
-                "確率(1/x)": f"1/{(1.0 / p):.2f}",
-                "事前(%)": f"{priors_norm[key] * 100.0:.2f}%",
-                "事後(%)": f"{posteriors[key] * 100.0:.2f}%",
-            }
+        setting_cards.append(
+            """
+            <div class='setting-item'>
+              <div class='setting-title'>設定{key}</div>
+              <div class='setting-values'>
+                <span>確率(1/x): {prob_inv:.2f}</span>
+                <span>事前: {prior_pct:.2f}%</span>
+                <span>事後: {posterior_pct:.2f}%</span>
+              </div>
+            </div>
+            """.format(
+                key=key,
+                prob_inv=1.0 / p,
+                prior_pct=priors_norm[key] * 100.0,
+                posterior_pct=posteriors[key] * 100.0,
+            )
         )
-    df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    setting_cards.append("</div>")
+    st.markdown("
+".join(setting_cards), unsafe_allow_html=True)
 else:
-    st.info("フォームに入力し「計算する」を押してください。事前確率は未設定でも自動で均等化されます。")
+    render_plain_text("フォームに入力し『計算する』を押してください。事前確率は未設定でも自動で均等化されます。", classes="info-box")
