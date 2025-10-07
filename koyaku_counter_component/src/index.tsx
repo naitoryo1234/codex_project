@@ -102,8 +102,8 @@ const buildTapButtonStyle = (
   themeStyle: ThemeStyle,
   variant: "increment" | "decrement"
 ): React.CSSProperties => {
-  const size = variant === "increment" ? 3.3 : 2.6;
-  const fontSize = variant === "increment" ? "1.9rem" : "1.5rem";
+  const size = variant === "increment" ? 3.0 : 2.3;
+  const fontSize = variant === "increment" ? "1.65rem" : "1.25rem";
 
   return {
     width: `${size}rem`,
@@ -277,7 +277,7 @@ const KoyakuCounter: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ display: "grid", gap: "0.85rem" }}>
+      <div style={{ display: "grid", gap: "0.7rem" }}>
         {ITEMS.map((item, index) => {
           const labelForA11y = `${item.label ?? "小役"}${index + 1}`;
           return (
@@ -287,9 +287,9 @@ const KoyakuCounter: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "0.65rem",
-                padding: "0.85rem 0.9rem",
-                borderRadius: "0.9rem",
+                gap: "0.5rem",
+                padding: "0.65rem 0.7rem",
+                borderRadius: "0.75rem",
                 background: item.color,
                 color: item.textColor,
                 boxShadow: themeStyle.cardShadow,
@@ -313,18 +313,17 @@ const KoyakuCounter: React.FC = () => {
                 value={counts[index] === 0 ? "" : String(counts[index])}
                 onChange={(event) => handleDirectInput(index, event.target.value)}
                 style={{
-                  width: "2.8rem",
-                  height: "2.2rem",
-                  borderRadius: "0.6rem",
+                  width: "2.4rem",
+                  height: "1.9rem",
+                  borderRadius: "0.55rem",
                   border: "none",
                   textAlign: "center",
-                  fontSize: "1.1rem",
+                  fontSize: "1rem",
                   fontWeight: 700,
                   color: item.textColor,
                   background: "rgba(255, 255, 255, 0.6)",
                   outline: "none"
                 }}
-                placeholder="0"
                 aria-label={`${labelForA11y} のカウントを直接入力`}
               />
               <button
