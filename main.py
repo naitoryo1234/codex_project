@@ -2,6 +2,7 @@ import json
 import math
 import uuid
 import html
+from pathlib import Path
 from typing import Dict, List
 
 import altair as alt
@@ -18,6 +19,22 @@ SETTINGS: Dict[str, float] = {
     "6": 1 / 22.53,
 }
 SETTING_KEYS: List[str] = list(SETTINGS.keys())
+
+KOYAKU_COMPONENT_BUILD_DIR = Path(__file__).parent / 'koyaku_counter_component' / 'build'
+if KOYAKU_COMPONENT_BUILD_DIR.exists():
+    _koyaku_counter_component = components.declare_component(
+        'koyaku_counter',
+        path=str(KOYAKU_COMPONENT_BUILD_DIR),
+    )
+else:
+    _koyaku_counter_component = None
+
+
+def render_koyaku_counter(**kwargs):
+    if _koyaku_counter_component is None:
+        st.info("小役カウンターのビルド結果が見つかりません。`npm run build` を実行してから再度お試しください。")
+        return None
+    return _koyaku_counter_component(**kwargs)
 
 
 def calculate_likelihood(num_spins: int, num_hits: int, p: float) -> float:
@@ -391,6 +408,10 @@ st.markdown(
 )
 
 st.title("モンキーターンV判別ツール")
+with st.expander("小役カウンター（ローカル保存）", expanded=False):
+    st.caption("色分けされたボタンでカウントできます。リセット直後は『元に戻す』で誤操作を取り消せます。")
+    render_koyaku_counter(key="koyaku-counter-main")
+
 
 if "n" not in st.session_state:
     st.session_state.n = 1000
