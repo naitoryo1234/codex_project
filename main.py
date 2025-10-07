@@ -351,7 +351,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      .block-container { padding-top: calc(1.1rem + constant(safe-area-inset-top, 0px)); padding-bottom: 1.6rem; max-width: 960px; }
+      .block-container { padding-top: 1.1rem; padding-bottom: 1.6rem; max-width: 960px; }
       h1 { font-size: 1.45rem !important; margin-bottom: 0.6rem; }
       label, .stMarkdown p { font-size: 0.9rem; }
       .stNumberInput input { font-size: 0.95rem; padding: 0.45rem 0.6rem; }
