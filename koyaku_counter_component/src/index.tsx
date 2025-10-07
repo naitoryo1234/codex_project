@@ -141,6 +141,13 @@ const KoyakuCounter: React.FC = () => {
   }, [counts]);
 
   useEffect(() => {
+    Streamlit.setComponentValue({
+      primaryCount: counts[0] ?? 0,
+      counts: [...counts]
+    });
+  }, [counts]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY_THEME, theme);
     }

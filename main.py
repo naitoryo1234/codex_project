@@ -408,15 +408,28 @@ st.markdown(
 )
 
 st.title("モンキーターンV判別ツール")
-with st.expander("小役カウンター（ローカル保存）", expanded=False):
-    st.caption("色分けされたボタンでカウントできます。リセット直後は『元に戻す』で誤操作を取り消せます。")
-    render_koyaku_counter(key="koyaku-counter-main")
-
-
 if "n" not in st.session_state:
     st.session_state.n = 1000
 if "k" not in st.session_state:
     st.session_state.k = 20
+
+koyaku_payload = None
+with st.expander("???????????????", expanded=False):
+    st.caption("??????????????????????????????????????????????????????????????????")
+    koyaku_payload = render_koyaku_counter(key="koyaku-counter-main")
+
+if isinstance(koyaku_payload, dict):
+    primary_count = koyaku_payload.get("primaryCount")
+    if primary_count is None:
+        counts_payload = koyaku_payload.get("counts")
+        if isinstance(counts_payload, list) and counts_payload:
+            primary_count = counts_payload[0]
+    try:
+        new_k_value = max(0, int(primary_count)) if primary_count is not None else None
+    except (TypeError, ValueError):
+        new_k_value = None
+    if new_k_value is not None and st.session_state.k != new_k_value:
+        st.session_state.k = new_k_value
 
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")
