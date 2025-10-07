@@ -433,5 +433,3 @@ Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
 });
 
 render();
-Streamlit.setComponentReady();
-Streamlit.setFrameHeight();
