@@ -22,6 +22,10 @@ type KoyakuItem = {
   color: string;
   textColor: string;
 };
+type KoyakuCounterProps = {
+  isReady: boolean;
+};
+
 
 const ITEMS: KoyakuItem[] = [
   { key: "bell", label: "ベル", color: "#f7d94c", textColor: "#1f1f1f" },
@@ -123,7 +127,7 @@ const buildTapButtonStyle = (
   };
 };
 
-const KoyakuCounter: React.FC = () => {
+const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   const [counts, setCounts] = useState<number[]>(getInitialCounts);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [undoCounts, setUndoCounts] = useState<number[] | null>(null);
@@ -131,13 +135,15 @@ const KoyakuCounter: React.FC = () => {
 
 
   const pushCountsToStreamlit = useCallback((nextCounts: number[]) => {
+    if (!isReady) {
+      return;
+    }
     Streamlit.setComponentValue({
       primaryCount: nextCounts[0] ?? 0,
       counts: [...nextCounts]
     });
-  }, []);
+  }, [isReady]);
 
-  const initialPushDoneRef = useRef(false);
   const persistCounts = (nextCounts: number[]) => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY_COUNTS, JSON.stringify(nextCounts));
@@ -147,13 +153,7 @@ const KoyakuCounter: React.FC = () => {
   useEffect(() => {
     persistCounts(counts);
     Streamlit.setFrameHeight();
-  }, [counts]);
-
-  useEffect(() => {
-    if (!initialPushDoneRef.current) {
-      pushCountsToStreamlit(counts);
-      initialPushDoneRef.current = true;
-    }
+    pushCountsToStreamlit(counts);
   }, [counts, pushCountsToStreamlit]);
 
   useEffect(() => {
@@ -188,17 +188,15 @@ const KoyakuCounter: React.FC = () => {
   );
 
   const handleUpdate = (index: number, delta: number) => {
-    setCounts((prev) => {
-      const nextCounts = prev.map((value, i) => {
+    setCounts((prev) =>
+      prev.map((value, i) => {
         if (i !== index) {
           return value;
         }
         const next = value + delta;
         return next < 0 ? 0 : next;
-      });
-      pushCountsToStreamlit(nextCounts);
-      return nextCounts;
-    });
+      })
+    );
     if (undoCounts) {
       clearUndo();
     }
@@ -207,11 +205,9 @@ const KoyakuCounter: React.FC = () => {
   const handleDirectInput = (index: number, rawValue: string) => {
     const numeric = Number(rawValue);
     const nextValue = Number.isFinite(numeric) && numeric >= 0 ? Math.floor(numeric) : 0;
-    setCounts((prev) => {
-      const nextCounts = prev.map((value, i) => (i === index ? nextValue : value));
-      pushCountsToStreamlit(nextCounts);
-      return nextCounts;
-    });
+    setCounts((prev) =>
+      prev.map((value, i) => (i === index ? nextValue : value))
+    );
     if (undoCounts) {
       clearUndo();
     }
@@ -224,7 +220,6 @@ const KoyakuCounter: React.FC = () => {
   const handleReset = () => {
     setUndoCounts([...counts]);
     const resetCounts = ITEMS.map(() => 0);
-    pushCountsToStreamlit(resetCounts);
     setCounts(resetCounts);
     if (undoTimerRef.current) {
       window.clearTimeout(undoTimerRef.current);
@@ -240,7 +235,6 @@ const KoyakuCounter: React.FC = () => {
       return;
     }
     const restored = [...undoCounts];
-    pushCountsToStreamlit(restored);
     setCounts(restored);
     clearUndo();
   };
@@ -419,16 +413,17 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 
+let streamlitReady = false;
+
 const render = () => {
-  root.render(<KoyakuCounter />);
+  root.render(<KoyakuCounter isReady={streamlitReady} />);
 };
 
 Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
-  Streamlit.setComponentReady();
+  streamlitReady = true;
   render();
+  Streamlit.setComponentReady();
   Streamlit.setFrameHeight();
 });
 
-Streamlit.setComponentReady();
 render();
-Streamlit.setFrameHeight();
