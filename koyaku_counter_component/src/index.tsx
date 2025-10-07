@@ -426,16 +426,25 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 
 let streamlitReady = false;
+let initialRenderDone = false;
 
 const render = () => {
   root.render(<KoyakuCounter isReady={streamlitReady} />);
 };
 
-Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
-  streamlitReady = true;
-  Streamlit.setComponentReady();
+const markReadyAndRender = () => {
+  if (!streamlitReady) {
+    streamlitReady = true;
+    Streamlit.setComponentReady();
+  }
   render();
   Streamlit.setFrameHeight();
+};
+
+Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
+  markReadyAndRender();
 });
 
 render();
+Streamlit.setComponentReady();
+Streamlit.setFrameHeight();
