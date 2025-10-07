@@ -377,6 +377,9 @@ st.markdown(
       .setting-values { font-size: 0.9rem; color: #24292f; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; gap: 0.2rem; }
       .reliability-caption { font-size: 0.82rem; color: #5f6368; margin-bottom: 0.4rem; }
       .reliability-comment { font-size: 0.88rem; color: #404650; margin: 0.2rem 0 0.7rem; line-height: 1.45; }
+      .koyaku-caption { font-size: 0.78rem; color: #5c6570; margin-top: 0.35rem; }
+      div[data-testid="stExpander"]:first-of-type > details summary span { font-size: 0.9rem; }
+
       &#64;media (max-width: 640px) {
         .block-container { padding-left: 0.55rem; padding-right: 0.55rem; }
         .result-card, .pair-card, .setting-item { padding: 0.55rem 0.65rem; }
@@ -407,16 +410,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("モンキーターンV判別ツール")
 if "n" not in st.session_state:
-    st.session_state.n = 1000
+    st.session_state.n = 300
 if "k" not in st.session_state:
     st.session_state.k = 20
 
 koyaku_payload = None
 with st.expander("小役カウンター（ローカル保存）", expanded=False):
-    st.caption("色分けされたボタンでカウントできます。リセット直後は『元に戻す』で誤操作を取り消せます。最上段は判別フォームの小役回数と同期します。")
     koyaku_payload = render_koyaku_counter(key="koyaku-counter-main")
+    st.markdown(
+        "<p class='koyaku-caption'>最上段は判別フォームの小役回数と同期します。</p>",
+        unsafe_allow_html=True,
+    )
 
 if isinstance(koyaku_payload, dict):
     primary_count = koyaku_payload.get("primaryCount")
@@ -433,8 +438,6 @@ if isinstance(koyaku_payload, dict):
         st.session_state["k_input"] = new_k_value
 
 with st.form("inputs", clear_on_submit=False):
-    st.subheader("入力")
-
     col_n, col_k = st.columns(2, gap="small")
     with col_n:
         n_value = st.number_input(
