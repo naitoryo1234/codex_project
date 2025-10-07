@@ -310,20 +310,21 @@ const KoyakuCounter: React.FC = () => {
                 min={0}
                 inputMode="numeric"
                 pattern="[0-9]*"
-                value={counts[index]}
+                value={counts[index] === 0 ? "" : String(counts[index])}
                 onChange={(event) => handleDirectInput(index, event.target.value)}
                 style={{
-                  width: "3.2rem",
-                  height: "2.5rem",
-                  borderRadius: "0.65rem",
+                  width: "2.8rem",
+                  height: "2.2rem",
+                  borderRadius: "0.6rem",
                   border: "none",
                   textAlign: "center",
-                  fontSize: "1.25rem",
+                  fontSize: "1.1rem",
                   fontWeight: 700,
                   color: item.textColor,
-                  background: "rgba(255, 255, 255, 0.55)",
+                  background: "rgba(255, 255, 255, 0.6)",
                   outline: "none"
                 }}
+                placeholder="0"
                 aria-label={`${labelForA11y} のカウントを直接入力`}
               />
               <button
