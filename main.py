@@ -414,8 +414,8 @@ if "k" not in st.session_state:
     st.session_state.k = 20
 
 koyaku_payload = None
-with st.expander("???????????????", expanded=False):
-    st.caption("??????????????????????????????????????????????????????????????????")
+with st.expander("小役カウンター（ローカル保存）", expanded=False):
+    st.caption("色分けされたボタンでカウントできます。リセット直後は『元に戻す』で誤操作を取り消せます。最上段は判別フォームの小役回数と同期します。")
     koyaku_payload = render_koyaku_counter(key="koyaku-counter-main")
 
 if isinstance(koyaku_payload, dict):
@@ -430,6 +430,7 @@ if isinstance(koyaku_payload, dict):
         new_k_value = None
     if new_k_value is not None and st.session_state.k != new_k_value:
         st.session_state.k = new_k_value
+        st.session_state["k_input"] = new_k_value
 
 with st.form("inputs", clear_on_submit=False):
     st.subheader("入力")

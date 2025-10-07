@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { Streamlit } from "streamlit-component-lib";
 
@@ -129,6 +129,15 @@ const KoyakuCounter: React.FC = () => {
   const [undoCounts, setUndoCounts] = useState<number[] | null>(null);
   const undoTimerRef = useRef<number | null>(null);
 
+
+  const pushCountsToStreamlit = useCallback((nextCounts: number[]) => {
+    Streamlit.setComponentValue({
+      primaryCount: nextCounts[0] ?? 0,
+      counts: [...nextCounts]
+    });
+  }, []);
+
+  const initialPushDoneRef = useRef(false);
   const persistCounts = (nextCounts: number[]) => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY_COUNTS, JSON.stringify(nextCounts));
@@ -141,11 +150,11 @@ const KoyakuCounter: React.FC = () => {
   }, [counts]);
 
   useEffect(() => {
-    Streamlit.setComponentValue({
-      primaryCount: counts[0] ?? 0,
-      counts: [...counts]
-    });
-  }, [counts]);
+    if (!initialPushDoneRef.current) {
+      pushCountsToStreamlit(counts);
+      initialPushDoneRef.current = true;
+    }
+  }, [counts, pushCountsToStreamlit]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -179,15 +188,17 @@ const KoyakuCounter: React.FC = () => {
   );
 
   const handleUpdate = (index: number, delta: number) => {
-    setCounts((prev) =>
-      prev.map((value, i) => {
+    setCounts((prev) => {
+      const nextCounts = prev.map((value, i) => {
         if (i !== index) {
           return value;
         }
         const next = value + delta;
         return next < 0 ? 0 : next;
-      })
-    );
+      });
+      pushCountsToStreamlit(nextCounts);
+      return nextCounts;
+    });
     if (undoCounts) {
       clearUndo();
     }
@@ -196,9 +207,11 @@ const KoyakuCounter: React.FC = () => {
   const handleDirectInput = (index: number, rawValue: string) => {
     const numeric = Number(rawValue);
     const nextValue = Number.isFinite(numeric) && numeric >= 0 ? Math.floor(numeric) : 0;
-    setCounts((prev) =>
-      prev.map((value, i) => (i === index ? nextValue : value))
-    );
+    setCounts((prev) => {
+      const nextCounts = prev.map((value, i) => (i === index ? nextValue : value));
+      pushCountsToStreamlit(nextCounts);
+      return nextCounts;
+    });
     if (undoCounts) {
       clearUndo();
     }
@@ -209,8 +222,10 @@ const KoyakuCounter: React.FC = () => {
   };
 
   const handleReset = () => {
-    setUndoCounts(counts);
-    setCounts(ITEMS.map(() => 0));
+    setUndoCounts([...counts]);
+    const resetCounts = ITEMS.map(() => 0);
+    pushCountsToStreamlit(resetCounts);
+    setCounts(resetCounts);
     if (undoTimerRef.current) {
       window.clearTimeout(undoTimerRef.current);
     }
@@ -224,7 +239,9 @@ const KoyakuCounter: React.FC = () => {
     if (!undoCounts) {
       return;
     }
-    setCounts(undoCounts);
+    const restored = [...undoCounts];
+    pushCountsToStreamlit(restored);
+    setCounts(restored);
     clearUndo();
   };
 
