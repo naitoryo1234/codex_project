@@ -32,7 +32,7 @@ else:
 
 def render_koyaku_counter(**kwargs):
     if _koyaku_counter_component is None:
-        st.info("蟆丞ｽｹ繧ｫ繧ｦ繝ｳ繧ｿ繝ｼ縺ｮ繝薙Ν繝臥ｵ先棡縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ縲Ａnpm run build` 繧貞ｮ溯｡後＠縺ｦ縺九ｉ蜀榊ｺｦ縺願ｩｦ縺励￥縺縺輔＞縲・)
+        st.info("Component assets not found. Please run `npm run build` in `koyaku_counter_component` and reload the app.")
         return None
     return _koyaku_counter_component(**kwargs)
 
