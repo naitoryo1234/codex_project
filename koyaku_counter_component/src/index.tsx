@@ -129,7 +129,7 @@ const buildTapButtonStyle = (
 
 const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   const [counts, setCounts] = useState<number[]>(getInitialCounts);
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const theme = useMemo(() => getInitialTheme(), []);
   const [undoCounts, setUndoCounts] = useState<number[] | null>(null);
   const undoTimerRef = useRef<number | null>(null);
 
@@ -165,15 +165,6 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   }, [isReady, counts, pushCountsToStreamlit]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY_THEME, theme);
-    }
-    if (isReady) {
-      Streamlit.setFrameHeight();
-    }
-  }, [theme, isReady]);
-
-  useEffect(() => {
     if (isReady) {
       Streamlit.setFrameHeight();
     }
@@ -193,11 +184,6 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   };
 
   const themeStyle = themeConfig[theme];
-
-  const total = useMemo(
-    () => counts.reduce((acc, value) => acc + value, 0),
-    [counts]
-  );
 
   const handleUpdate = (index: number, delta: number) => {
     setCounts((prev) =>
@@ -223,10 +209,6 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
     if (undoCounts) {
       clearUndo();
     }
-  };
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   const handleReset = () => {
@@ -264,49 +246,6 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
         transition: "background 0.2s ease, color 0.2s ease"
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "1rem",
-          marginBottom: "1rem"
-        }}
-      >
-        <div>
-          <h2 style={{ margin: 0, fontSize: "1.5rem" }}>小役カウンター</h2>
-          <p
-            style={{
-              margin: "0.25rem 0 0",
-              fontWeight: 600,
-              color: themeStyle.secondaryText
-            }}
-          >
-            合計: {total}
-          </p>
-        </div>
-        <button
-          onClick={toggleTheme}
-          style={{
-            border: "none",
-            borderRadius: "999px",
-            padding: "0.6rem 1rem",
-            background: themeStyle.buttonBg,
-            color: themeStyle.buttonText,
-            fontSize: "0.95rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            touchAction: "manipulation"
-          }}
-          aria-label="テーマ切り替え"
-        >
-          {theme === "light" ? "🌙 ダーク" : "🌞 ライト"}
-        </button>
-      </div>
-
       <div style={{ display: "grid", gap: "0.7rem" }}>
         {ITEMS.map((item, index) => {
           const labelForA11y = `${item.label ?? "小役"}${index + 1}`;

@@ -560,8 +560,8 @@ if submitted:
     button_id = f"copy-btn-{uuid.uuid4().hex}"
 
     copy_html = """
-        <div class="copy-share-container">
-          <button id="__BUTTON_ID__">判別結果をコピー</button>
+        <div style="margin:0.2rem 0 0.3rem; display:inline-flex;">
+          <button id="__BUTTON_ID__" style="margin:0; padding:0.45rem 0.85rem; background-color:#2F80ED; border:none; border-radius:0.55rem; color:#ffffff; font-size:0.92rem; cursor:pointer;">Copy Result</button>
         </div>
         <script>
           const btn = document.getElementById('__BUTTON_ID__');
@@ -570,9 +570,9 @@ if submitted:
             btn.addEventListener('click', async () => {
               try {
                 await navigator.clipboard.writeText(textToCopy);
-                window.alert('判別結果をコピーしました。');
+                window.alert('Result copied to clipboard.');
               } catch (error) {
-                window.alert('コピーに失敗しました。');
+                window.alert('Copy failed.');
               }
             });
           }
