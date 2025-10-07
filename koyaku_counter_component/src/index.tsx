@@ -152,8 +152,10 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
 
   useEffect(() => {
     persistCounts(counts);
-    Streamlit.setFrameHeight();
-  }, [counts]);
+    if (isReady) {
+      Streamlit.setFrameHeight();
+    }
+  }, [counts, isReady]);
 
   useEffect(() => {
     if (!isReady) {
@@ -166,17 +168,21 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY_THEME, theme);
     }
-    Streamlit.setFrameHeight();
-  }, [theme]);
+    if (isReady) {
+      Streamlit.setFrameHeight();
+    }
+  }, [theme, isReady]);
 
   useEffect(() => {
-    Streamlit.setFrameHeight();
+    if (isReady) {
+      Streamlit.setFrameHeight();
+    }
     return () => {
       if (undoTimerRef.current) {
         window.clearTimeout(undoTimerRef.current);
       }
     };
-  }, []);
+  }, [isReady]);
 
   const clearUndo = () => {
     if (undoTimerRef.current) {
@@ -427,8 +433,8 @@ const render = () => {
 
 Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
   streamlitReady = true;
-  render();
   Streamlit.setComponentReady();
+  render();
   Streamlit.setFrameHeight();
 });
 
