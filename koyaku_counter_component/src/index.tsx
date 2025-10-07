@@ -153,8 +153,14 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   useEffect(() => {
     persistCounts(counts);
     Streamlit.setFrameHeight();
+  }, [counts]);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
     pushCountsToStreamlit(counts);
-  }, [counts, pushCountsToStreamlit]);
+  }, [isReady, counts, pushCountsToStreamlit]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -427,3 +433,5 @@ Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
 });
 
 render();
+Streamlit.setComponentReady();
+Streamlit.setFrameHeight();
