@@ -98,22 +98,30 @@ const getInitialTheme = (): Theme => {
     : "light";
 };
 
-const buildTapButtonStyle = (themeStyle: ThemeStyle): React.CSSProperties => ({
-  width: "3.1rem",
-  height: "3.1rem",
-  borderRadius: "50%",
-  border: "none",
-  background: themeStyle.buttonBg,
-  color: themeStyle.buttonText,
-  fontSize: "1.8rem",
-  fontWeight: 700,
-  cursor: "pointer",
-  touchAction: "manipulation",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  boxShadow: themeStyle.cardShadow
-});
+const buildTapButtonStyle = (
+  themeStyle: ThemeStyle,
+  variant: "increment" | "decrement"
+): React.CSSProperties => {
+  const size = variant === "increment" ? 3.3 : 2.6;
+  const fontSize = variant === "increment" ? "1.9rem" : "1.5rem";
+
+  return {
+    width: `${size}rem`,
+    height: `${size}rem`,
+    borderRadius: "50%",
+    border: "none",
+    background: themeStyle.buttonBg,
+    color: themeStyle.buttonText,
+    fontSize,
+    fontWeight: 700,
+    cursor: "pointer",
+    touchAction: "manipulation",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: themeStyle.cardShadow
+  };
+};
 
 const KoyakuCounter: React.FC = () => {
   const [counts, setCounts] = useState<number[]>(getInitialCounts);
@@ -269,7 +277,7 @@ const KoyakuCounter: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ display: "grid", gap: "1rem" }}>
+      <div style={{ display: "grid", gap: "0.85rem" }}>
         {ITEMS.map((item, index) => {
           const labelForA11y = `${item.label ?? "小役"}${index + 1}`;
           return (
@@ -279,9 +287,9 @@ const KoyakuCounter: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "1.1rem",
-                padding: "1.1rem",
-                borderRadius: "1rem",
+                gap: "0.65rem",
+                padding: "0.85rem 0.9rem",
+                borderRadius: "0.9rem",
                 background: item.color,
                 color: item.textColor,
                 boxShadow: themeStyle.cardShadow,
@@ -292,7 +300,7 @@ const KoyakuCounter: React.FC = () => {
             >
               <button
                 onClick={() => handleUpdate(index, -1)}
-                style={buildTapButtonStyle(themeStyle)}
+                style={buildTapButtonStyle(themeStyle, "decrement")}
                 aria-label={`${labelForA11y} を 1 減算`}
               >
                 -
@@ -305,22 +313,22 @@ const KoyakuCounter: React.FC = () => {
                 value={counts[index]}
                 onChange={(event) => handleDirectInput(index, event.target.value)}
                 style={{
-                  width: "4.3rem",
-                  height: "3.1rem",
-                  borderRadius: "0.85rem",
+                  width: "3.2rem",
+                  height: "2.5rem",
+                  borderRadius: "0.65rem",
                   border: "none",
                   textAlign: "center",
-                  fontSize: "1.6rem",
+                  fontSize: "1.25rem",
                   fontWeight: 700,
                   color: item.textColor,
-                  background: "rgba(255, 255, 255, 0.45)",
+                  background: "rgba(255, 255, 255, 0.55)",
                   outline: "none"
                 }}
                 aria-label={`${labelForA11y} のカウントを直接入力`}
               />
               <button
                 onClick={() => handleUpdate(index, 1)}
-                style={buildTapButtonStyle(themeStyle)}
+                style={buildTapButtonStyle(themeStyle, "increment")}
                 aria-label={`${labelForA11y} を 1 加算`}
               >
                 +
