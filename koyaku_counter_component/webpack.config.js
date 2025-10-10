@@ -17,6 +17,16 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.m?js$/,
+        type: "javascript/auto",
+        use: {
+          loader: "babel-loader",
+          options: {
+            cacheDirectory: true
+          }
+        }
+      },
+      {
         test: /\.tsx?$/,
         use: [
           {
