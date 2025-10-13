@@ -49,6 +49,8 @@ const MAIN_ITEMS = ITEMS.slice(0, MAIN_ITEM_COUNT);
 const EXTRA_ITEMS = ITEMS.slice(MAIN_ITEM_COUNT);
 
 const STORAGE_KEY_COUNTS = "koyakuCounter_counts";
+const STORAGE_KEY_SHOW_EXTRAS = "koyakuCounter_showExtras";
+
 const STORAGE_KEY_THEME = "koyakuCounter_theme";
 const UNDO_TIMEOUT = 10000; // 10 秒以内なら復元可能
 
@@ -115,6 +117,15 @@ const getInitialTheme = (): Theme => {
     : "light";
 };
 
+const getInitialShowExtras = (): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const stored = window.localStorage.getItem(STORAGE_KEY_SHOW_EXTRAS);
+  return stored === "1";
+};
+
+
 const buildTapButtonStyle = (
   themeStyle: ThemeStyle,
   variant: "increment" | "decrement"
@@ -144,7 +155,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   const [counts, setCounts] = useState<number[]>(getInitialCounts);
   const theme = useMemo(() => getInitialTheme(), []);
   const [undoCounts, setUndoCounts] = useState<number[] | null>(null);
-  const [showExtras, setShowExtras] = useState(false);
+  const [showExtras, setShowExtras] = useState<boolean>(() => getInitialShowExtras());
   const undoTimerRef = useRef<number | null>(null);
 
 
@@ -188,6 +199,13 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
       }
     };
   }, [isReady]);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+            <span>{showExtras ? "追加カウンターを閉じる" : "追加カウンターを表示"}</span>
+    }
+  }, [showExtras]);
+
+
 
   const clearUndo = () => {
     if (undoTimerRef.current) {
@@ -202,6 +220,14 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
     const value = counts[MAIN_ITEM_COUNT + offset];
     return sum + (typeof value === "number" && Number.isFinite(value) ? value : 0);
   }, 0);
+
+  const mainTotal = MAIN_ITEMS.reduce((sum, _item, index) => {
+    const value = counts[index];
+    return sum + (typeof value === "number" && Number.isFinite(value) ? value : 0);
+  }, 0);
+
+  const overallTotal = mainTotal + extraTotal;
+
 
   const renderCard = (item: KoyakuItem, index: number) => {
     const labelForA11y = `${item.label ?? "小役"}${index + 1}`;
@@ -329,6 +355,22 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
         transition: "background 0.2s ease, color 0.2s ease"
       }}
     >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "0.45rem",
+          color: themeStyle.secondaryText,
+          fontSize: "0.82rem",
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums"
+        }}
+      >
+        <span>メイン {mainTotal}</span>
+        <span>総計 {overallTotal}</span>
+      </div>
+
       <div style={{ display: "grid", gap: "0.55rem", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
         {MAIN_ITEMS.map((item, index) => renderCard(item, index))}
       </div>
@@ -357,7 +399,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
             aria-controls="extra-counter-grid"
           >
             <span>{showExtras ? "追加カウンターを閉じる" : "追加カウンターを表示"}</span>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>計 {extraTotal}</span>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>追加計 {extraTotal}</span>
           </button>
           {showExtras && (
             <div
@@ -399,7 +441,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
               cursor: "pointer",
               touchAction: "manipulation"
             }}
-            aria-label="リセットを取り消す"
+            aria-label="直前の変更を取り消す"
           >
             元に戻す
           </button>
@@ -417,7 +459,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
             cursor: "pointer",
             touchAction: "manipulation"
           }}
-          aria-label="すべての小役カウントをリセット"
+          aria-label="すべてのカウントをリセット"
         >
           すべてリセット
         </button>
@@ -456,6 +498,7 @@ Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
 render();
 Streamlit.setComponentReady();
 Streamlit.setFrameHeight();
+
 
 
 

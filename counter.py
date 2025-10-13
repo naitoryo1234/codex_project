@@ -44,10 +44,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-st.title("小役カウンター（単体版）")
-st.caption("小役カウンターを操作し、必要があれば『すべてリセット』までご利用ください。")
+st.markdown(
+    """
+    <style>
+      .block-container { padding-top: 0.6rem; padding-bottom: 0.8rem; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 payload = render_koyaku_counter(key="koyaku-counter-standalone")
 
 if isinstance(payload, dict):
     st.session_state["koyaku_latest"] = snapshot_from_payload(payload)
+
