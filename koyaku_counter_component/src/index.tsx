@@ -33,11 +33,20 @@ type KoyakuCounterProps = {
 
 const ITEMS: KoyakuItem[] = [
   { key: "bell", label: "ベル", color: "#f7d94c", textColor: "#1f1f1f" },
-  { key: "cherry", label: "チェリー", color: "#ef5a5a", textColor: "#ffffff" },
+  { key: "weak_cherry", label: "弱チェリー", color: "#ef5a5a", textColor: "#ffffff" },
+  { key: "strong_cherry", label: "強チェリー", color: "#d45d79", textColor: "#ffffff" },
   { key: "watermelon", label: "スイカ", color: "#4caf50", textColor: "#ffffff" },
+  { key: "chance", label: "チャンス目", color: "#b085f5", textColor: "#1f1f1f" },
   { key: "replay", label: "リプレイ", color: "#4ac0ff", textColor: "#0e2d3c" },
-  { key: "chance", label: "チャンス目", color: "#b085f5", textColor: "#1f1f1f" }
+  { key: "boat", label: "ボート", color: "#ffca28", textColor: "#1f1f1f" },
+  { key: "mb", label: "MB", color: "#8d6e63", textColor: "#ffffff" },
+  { key: "common_bell", label: "共通ベル", color: "#ffab91", textColor: "#1f1f1f" },
+  { key: "others", label: "その他", color: "#90a4ae", textColor: "#1f1f1f" }
 ];
+
+const MAIN_ITEM_COUNT = 6;
+const MAIN_ITEMS = ITEMS.slice(0, MAIN_ITEM_COUNT);
+const EXTRA_ITEMS = ITEMS.slice(MAIN_ITEM_COUNT);
 
 const STORAGE_KEY_COUNTS = "koyakuCounter_counts";
 const STORAGE_KEY_THEME = "koyakuCounter_theme";
@@ -110,8 +119,8 @@ const buildTapButtonStyle = (
   themeStyle: ThemeStyle,
   variant: "increment" | "decrement"
 ): React.CSSProperties => {
-  const size = variant === "increment" ? 3.0 : 2.3;
-  const fontSize = variant === "increment" ? "1.65rem" : "1.25rem";
+  const size = variant === "increment" ? 3.2 : 2.6;
+  const fontSize = variant === "increment" ? "1.8rem" : "1.35rem";
 
   return {
     width: `${size}rem`,
@@ -135,6 +144,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   const [counts, setCounts] = useState<number[]>(getInitialCounts);
   const theme = useMemo(() => getInitialTheme(), []);
   const [undoCounts, setUndoCounts] = useState<number[] | null>(null);
+  const [showExtras, setShowExtras] = useState(false);
   const undoTimerRef = useRef<number | null>(null);
 
 
@@ -188,6 +198,73 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
   };
 
   const themeStyle = themeConfig[theme];
+  const extraTotal = EXTRA_ITEMS.reduce((sum, _item, offset) => {
+    const value = counts[MAIN_ITEM_COUNT + offset];
+    return sum + (typeof value === "number" && Number.isFinite(value) ? value : 0);
+  }, 0);
+
+  const renderCard = (item: KoyakuItem, index: number) => {
+    const labelForA11y = `${item.label ?? "小役"}${index + 1}`;
+    const currentValue = typeof counts[index] === "number" && Number.isFinite(counts[index]) ? counts[index] : 0;
+    return (
+      <div
+        key={item.key}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          padding: "0.65rem 0.7rem",
+          borderRadius: "0.75rem",
+          background: item.color,
+          color: item.textColor,
+          boxShadow: themeStyle.cardShadow,
+          border: themeStyle.cardBorder,
+          transition: "transform 0.1s ease",
+          touchAction: "manipulation"
+        }}
+      >
+        <button
+          onClick={() => handleUpdate(index, -1)}
+          style={buildTapButtonStyle(themeStyle, "decrement")}
+          aria-label={`${labelForA11y} を1減算`}
+        >
+          -
+        </button>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={currentValue === 0 ? "" : String(currentValue)}
+          onChange={(event) => handleDirectInput(index, event.target.value)}
+          style={{
+            width: "2.8rem",
+            height: "2.2rem",
+            borderRadius: "0.55rem",
+            border: "none",
+            textAlign: "center",
+            fontSize: "1.1rem",
+            fontWeight: 700,
+            color: item.textColor,
+            background: "rgba(255, 255, 255, 0.6)",
+            outline: "none"
+          }}
+          aria-label={`${labelForA11y} のカウント入力`}
+        />
+        <button
+          onClick={() => handleUpdate(index, 1)}
+          style={buildTapButtonStyle(themeStyle, "increment")}
+          aria-label={`${labelForA11y} を1加算`}
+        >
+          +
+        </button>
+      </div>
+    );
+  };
+
+
+
 
   const handleUpdate = (index: number, delta: number) => {
     setCounts((prev) =>
@@ -241,75 +318,63 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
     <div
       style={{
         fontFamily: "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif",
-        padding: "1rem",
+        padding: "1.2rem 1rem 1.35rem",
         background: themeStyle.rootBg,
         color: themeStyle.text,
-        minWidth: "280px",
-        maxWidth: "560px",
+        minWidth: "0",
+        maxWidth: "420px",
+        width: "100%",
+        boxSizing: "border-box",
         margin: "0 auto",
         transition: "background 0.2s ease, color 0.2s ease"
       }}
     >
-      <div style={{ display: "grid", gap: "0.7rem" }}>
-        {ITEMS.map((item, index) => {
-          const labelForA11y = `${item.label ?? "小役"}${index + 1}`;
-          return (
+      <div style={{ display: "grid", gap: "0.7rem", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
+        {MAIN_ITEMS.map((item, index) => renderCard(item, index))}
+      </div>
+
+      {EXTRA_ITEMS.length > 0 && (
+        <div style={{ marginTop: "0.9rem" }}>
+          <button
+            onClick={() => setShowExtras((prev) => !prev)}
+            style={{
+              width: "100%",
+              border: "1px solid rgba(0, 0, 0, 0.08)",
+              borderRadius: "0.75rem",
+              padding: "0.6rem 0.85rem",
+              background: theme === "light" ? "rgba(255, 255, 255, 0.92)" : "rgba(0, 0, 0, 0.35)",
+              color: themeStyle.text,
+              fontSize: "0.95rem",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "0.75rem",
+              cursor: "pointer",
+              touchAction: "manipulation"
+            }}
+            aria-expanded={showExtras}
+            aria-controls="extra-counter-grid"
+          >
+            <span>{showExtras ? "追加カウンターを閉じる" : "追加カウンターを表示"}</span>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>計 {extraTotal}</span>
+          </button>
+          {showExtras && (
             <div
-              key={item.key}
+              id="extra-counter-grid"
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-                padding: "0.65rem 0.7rem",
-                borderRadius: "0.75rem",
-                background: item.color,
-                color: item.textColor,
-                boxShadow: themeStyle.cardShadow,
-                border: themeStyle.cardBorder,
-                transition: "transform 0.1s ease",
-                touchAction: "manipulation"
+                marginTop: "0.6rem",
+                display: "grid",
+                gap: "0.7rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))"
               }}
             >
-              <button
-                onClick={() => handleUpdate(index, -1)}
-                style={buildTapButtonStyle(themeStyle, "decrement")}
-                aria-label={`${labelForA11y} を 1 減算`}
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={counts[index] === 0 ? "" : String(counts[index])}
-                onChange={(event) => handleDirectInput(index, event.target.value)}
-                style={{
-                  width: "2.4rem",
-                  height: "1.9rem",
-                  borderRadius: "0.55rem",
-                  border: "none",
-                  textAlign: "center",
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  color: item.textColor,
-                  background: "rgba(255, 255, 255, 0.6)",
-                  outline: "none"
-                }}
-                aria-label={`${labelForA11y} のカウントを直接入力`}
-              />
-              <button
-                onClick={() => handleUpdate(index, 1)}
-                style={buildTapButtonStyle(themeStyle, "increment")}
-                aria-label={`${labelForA11y} を 1 加算`}
-              >
-                +
-              </button>
+              {EXTRA_ITEMS.map((item, extraIndex) => renderCard(item, MAIN_ITEM_COUNT + extraIndex))}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
+
 
       <div
         style={{
@@ -347,7 +412,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
             padding: "0.7rem 1.4rem",
             background: themeStyle.resetBg,
             color: themeStyle.resetText,
-            fontSize: "1rem",
+            fontSize: "1.1rem",
             fontWeight: 600,
             cursor: "pointer",
             touchAction: "manipulation"
@@ -391,3 +456,10 @@ Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, () => {
 render();
 Streamlit.setComponentReady();
 Streamlit.setFrameHeight();
+
+
+
+
+
+
+
