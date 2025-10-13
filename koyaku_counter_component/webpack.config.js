@@ -1,5 +1,8 @@
 ﻿const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const webpack = require("webpack");
+
+const buildId = new Date().toISOString();
 
 module.exports = {
   entry: "./src/index.tsx",
@@ -7,7 +10,7 @@ module.exports = {
     extensions: [".ts", ".tsx", ".js"]
   },
   output: {
-    filename: "index.js",
+    filename: "index.[contenthash].js",
     path: path.resolve(__dirname, "build"),
     library: {
       type: "umd",
@@ -49,6 +52,9 @@ module.exports = {
       template: "./public/index.html",
       filename: "index.html",
       scriptLoading: "defer"
+    }),
+    new webpack.DefinePlugin({
+      __BUILD_ID__: JSON.stringify(buildId)
     })
   ],
   devtool: "source-map",

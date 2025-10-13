@@ -2,6 +2,10 @@
 import ReactDOM from "react-dom/client";
 import { Streamlit } from "streamlit-component-lib";
 
+declare const __BUILD_ID__: string;
+
+console.log("KoyakuCounter build:", __BUILD_ID__, navigator.userAgent);
+
 type Theme = "light" | "dark";
 
 type ThemeStyle = {

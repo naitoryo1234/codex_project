@@ -1,6 +1,8 @@
 import { Streamlit } from "streamlit-component-lib";
 import "./style.css";
 
+console.log("SwipeCounter build:", __BUILD_ID__, navigator.userAgent);
+
 const appRoot = document.getElementById("app");
 
 if (!appRoot) {
