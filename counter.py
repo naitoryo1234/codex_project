@@ -48,10 +48,12 @@ st.markdown(
     """
     <style>
       .block-container { padding-top: 0.6rem; padding-bottom: 0.8rem; }
+      .counter-heading { font-size: 1.05rem; font-weight: 600; text-align: center; color: #2f3136; margin: 0.15rem 0 0.55rem; }
     </style>
     """,
     unsafe_allow_html=True,
 )
+st.markdown("<div class='counter-heading'>小役カウンター</div>", unsafe_allow_html=True)
 
 
 payload = render_koyaku_counter(key="koyaku-counter-standalone")
