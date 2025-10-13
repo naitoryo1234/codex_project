@@ -119,8 +119,8 @@ const buildTapButtonStyle = (
   themeStyle: ThemeStyle,
   variant: "increment" | "decrement"
 ): React.CSSProperties => {
-  const size = variant === "increment" ? 3.2 : 2.6;
-  const fontSize = variant === "increment" ? "1.8rem" : "1.35rem";
+  const size = variant === "increment" ? 2.8 : 2.2;
+  const fontSize = variant === "increment" ? "1.55rem" : "1.15rem";
 
   return {
     width: `${size}rem`,
@@ -213,8 +213,8 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "0.5rem",
-          padding: "0.65rem 0.7rem",
+          gap: "0.35rem",
+          padding: "0.55rem 0.6rem",
           borderRadius: "0.75rem",
           background: item.color,
           color: item.textColor,
@@ -239,12 +239,12 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
           value={currentValue === 0 ? "" : String(currentValue)}
           onChange={(event) => handleDirectInput(index, event.target.value)}
           style={{
-            width: "2.8rem",
-            height: "2.2rem",
+            width: "2.4rem",
+            height: "1.9rem",
             borderRadius: "0.55rem",
             border: "none",
             textAlign: "center",
-            fontSize: "1.1rem",
+            fontSize: "1rem",
             fontWeight: 700,
             color: item.textColor,
             background: "rgba(255, 255, 255, 0.6)",
@@ -329,7 +329,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
         transition: "background 0.2s ease, color 0.2s ease"
       }}
     >
-      <div style={{ display: "grid", gap: "0.7rem", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
+      <div style={{ display: "grid", gap: "0.55rem", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
         {MAIN_ITEMS.map((item, index) => renderCard(item, index))}
       </div>
 
@@ -341,7 +341,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
               width: "100%",
               border: "1px solid rgba(0, 0, 0, 0.08)",
               borderRadius: "0.75rem",
-              padding: "0.6rem 0.85rem",
+              padding: "0.55rem 0.8rem",
               background: theme === "light" ? "rgba(255, 255, 255, 0.92)" : "rgba(0, 0, 0, 0.35)",
               color: themeStyle.text,
               fontSize: "0.95rem",
@@ -349,7 +349,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "0.75rem",
+              gap: "0.65rem",
               cursor: "pointer",
               touchAction: "manipulation"
             }}
@@ -366,7 +366,7 @@ const KoyakuCounter: React.FC<KoyakuCounterProps> = ({ isReady }) => {
                 marginTop: "0.6rem",
                 display: "grid",
                 gap: "0.7rem",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))"
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))"
               }}
             >
               {EXTRA_ITEMS.map((item, extraIndex) => renderCard(item, MAIN_ITEM_COUNT + extraIndex))}
