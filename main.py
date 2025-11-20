@@ -8,7 +8,6 @@ from src.components import (
     render_mobile_header,
     render_mobile_result_card,
     render_probability_bars_mobile,
-    render_input_buttons,
     render_copy_button
 )
 
@@ -34,25 +33,10 @@ def main():
         col_n, col_k = st.columns(2)
         
         with col_n:
-            new_n = st.number_input("総回転数 (G)", value=st.session_state.n, step=10, key="num_n")
-            # クイックボタン (スマホで押しやすいように配置)
-            st.write("") # 余白
-            added_n = render_input_buttons(new_n, [50, 100, 500], "n")
-            if added_n != new_n:
-                st.session_state.n = added_n
-                st.rerun()
-            else:
-                st.session_state.n = new_n
+            st.session_state.n = st.number_input("総回転数 (G)", value=st.session_state.n, step=10, key="num_n")
 
         with col_k:
-            new_k = st.number_input("5枚役回数", value=st.session_state.k, step=1, key="num_k")
-            st.write("") # 余白
-            added_k = render_input_buttons(new_k, [1, 5, 10], "k")
-            if added_k != new_k:
-                st.session_state.k = added_k
-                st.rerun()
-            else:
-                st.session_state.k = new_k
+            st.session_state.k = st.number_input("5枚役回数", value=st.session_state.k, step=1, key="num_k")
 
     # --- 計算と表示 ---
     if st.session_state.n > 0:

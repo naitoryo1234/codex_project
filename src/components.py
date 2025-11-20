@@ -1,54 +1,13 @@
 import streamlit as st
-import streamlit.components.v1 as components
 from typing import Dict, Any
 from .constants import SETTING_KEYS, SETTINGS
 from .logic import format_percent, format_denominator
-import json
-import uuid
 
 def render_copy_button(text: str, label: str = "結果をコピーしてシェア"):
-    """クリップボードにテキストをコピーするボタン"""
-    button_id = f"copy-btn-{uuid.uuid4().hex}"
-    text_json = json.dumps(text, ensure_ascii=False)
-    
-    html = f"""
-    <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
-        <button id="{button_id}" style="
-            background-color: #2ecc71; 
-            color: white; 
-            border: none; 
-            padding: 12px 24px; 
-            border-radius: 25px; 
-            font-weight: bold; 
-            font-size: 1rem; 
-            cursor: pointer; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 300px;
-            transition: transform 0.1s;
-        ">
-            {label} 📋
-        </button>
-    </div>
-    <script>
-        (function() {{
-            const btn = document.getElementById('{button_id}');
-            const text = {text_json};
-            if (btn) {{
-                btn.addEventListener('click', function() {{
-                    navigator.clipboard.writeText(text).then(function() {{
-                        btn.innerText = 'コピーしました！ ✅';
-                        setTimeout(function() {{ btn.innerText = '{label} 📋'; }}, 2000);
-                    }}, function(err) {{
-                        console.error('Could not copy text: ', err);
-                        alert('コピーに失敗しました');
-                    }});
-                }});
-            }}
-        }})();
-    </script>
-    """
-    components.html(html, height=80)
+    """コピー用テキストを表示（Streamlitネイティブ機能）"""
+    with st.expander(label, expanded=False):
+        st.code(text, language=None)
+        st.caption("👆 上のテキストをタップ/長押しして選択し、コピーしてください")
 
 def render_mobile_header():
     """スマホ向けのコンパクトなヘッダー"""
