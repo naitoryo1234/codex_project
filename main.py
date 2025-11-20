@@ -1,6 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
-from pathlib import Path
 import math
 
 from src.constants import SETTING_KEYS, SETTINGS
@@ -13,21 +11,6 @@ from src.components import (
     render_input_buttons,
     render_copy_button
 )
-
-# --- 小役カウンターコンポーネント ---
-KOYAKU_COMPONENT_BUILD_DIR = Path(__file__).parent / 'koyaku_counter_component' / 'build'
-if KOYAKU_COMPONENT_BUILD_DIR.exists():
-    _koyaku_counter_component = components.declare_component(
-        'koyaku_counter',
-        path=str(KOYAKU_COMPONENT_BUILD_DIR),
-    )
-else:
-    _koyaku_counter_component = None
-
-def render_koyaku_counter(**kwargs):
-    if _koyaku_counter_component:
-        return _koyaku_counter_component(**kwargs)
-    return None
 
 # --- メインアプリ ---
 def main():
@@ -45,21 +28,6 @@ def main():
     if "k" not in st.session_state: st.session_state.k = 0
 
     render_mobile_header()
-
-    # --- カウンターエリア (アコーディオン式) ---
-    # 注: カスタムコンポーネントはローカル環境でのみ動作します
-    # デプロイ環境では無効化しています
-    # with st.expander("🛠 小役カウンター (タップで開く)", expanded=False):
-    #     st.caption("▼ タップでカウント (自動入力)")
-    #     koyaku_payload = render_koyaku_counter(key="koyaku-main")
-    #     
-    #     # カウンター同期ロジック
-    #     if koyaku_payload and isinstance(koyaku_payload, dict):
-    #         counts = koyaku_payload.get("counts", [])
-    #         if counts and isinstance(counts[0], int):
-    #             if counts[0] > st.session_state.k:
-    #                     st.session_state.k = counts[0]
-    #                     st.rerun()
 
     # --- 入力エリア ---
     with st.container():
