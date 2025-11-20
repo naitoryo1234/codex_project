@@ -47,17 +47,19 @@ def main():
     render_mobile_header()
 
     # --- カウンターエリア (アコーディオン式) ---
-    with st.expander("🛠 小役カウンター (タップで開く)", expanded=False):
-        st.caption("▼ タップでカウント (自動入力)")
-        koyaku_payload = render_koyaku_counter(key="koyaku-main")
-        
-        # カウンター同期ロジック
-        if koyaku_payload and isinstance(koyaku_payload, dict):
-            counts = koyaku_payload.get("counts", [])
-            if counts and isinstance(counts[0], int):
-                if counts[0] > st.session_state.k:
-                        st.session_state.k = counts[0]
-                        st.rerun()
+    # 注: カスタムコンポーネントはローカル環境でのみ動作します
+    # デプロイ環境では無効化しています
+    # with st.expander("🛠 小役カウンター (タップで開く)", expanded=False):
+    #     st.caption("▼ タップでカウント (自動入力)")
+    #     koyaku_payload = render_koyaku_counter(key="koyaku-main")
+    #     
+    #     # カウンター同期ロジック
+    #     if koyaku_payload and isinstance(koyaku_payload, dict):
+    #         counts = koyaku_payload.get("counts", [])
+    #         if counts and isinstance(counts[0], int):
+    #             if counts[0] > st.session_state.k:
+    #                     st.session_state.k = counts[0]
+    #                     st.rerun()
 
     # --- 入力エリア ---
     with st.container():
